@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RouterAgent } from '../../src/router/router-agent.js'
 
 const mockLlm = {
@@ -7,6 +7,8 @@ const mockLlm = {
 
 describe('RouterAgent', () => {
   const router = new RouterAgent(mockLlm as any)
+
+  beforeEach(() => { vi.clearAllMocks() })
 
   it('routes 售前 intent to pre-sale', async () => {
     mockLlm.classify.mockResolvedValue({ intent: 'pre-sale', confidence: 0.92 })
@@ -40,5 +42,6 @@ describe('RouterAgent', () => {
     mockLlm.classify.mockResolvedValue({ intent: 'unknown', confidence: 0.9 })
     const result = await router.route('随便说说', [])
     expect(result.needsClarification).toBe(true)
+    expect(result.clarificationPrompt).toContain('了解新产品')
   })
 })
