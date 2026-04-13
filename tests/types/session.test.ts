@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { SessionContext, PolicySnapshot, AgentId } from '../../src/types/session.js'
+import type { SessionContext, PolicySnapshot } from '../../src/types/session.js'
 
 describe('SessionContext types', () => {
   it('should allow constructing a valid SessionContext', () => {
@@ -23,8 +23,18 @@ describe('SessionContext types', () => {
     expect(ctx.policies).toHaveLength(1)
   })
 
-  it('should type-check AgentId union', () => {
-    const id: AgentId = 'pre-sale'
-    expect(['pre-sale', 'after-sale', 'retention'].includes(id)).toBe(true)
+  it('should accept empty needsProfile', () => {
+    const ctx: SessionContext = {
+      userId: 'u_002',
+      openId: 'o_002',
+      riskLevel: 'medium',
+      policies: [],
+      messages: [],
+      currentAgent: 'after-sale',
+      agentState: { stage: 'query', collectedFields: {}, lastIntent: 'after-sale' },
+      needsProfile: {},
+    }
+    expect(ctx.policies).toHaveLength(0)
+    expect(ctx.needsProfile).toEqual({})
   })
 })

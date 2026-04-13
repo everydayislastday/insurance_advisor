@@ -1,9 +1,11 @@
 export type AgentId = 'pre-sale' | 'after-sale' | 'retention'
+export type PolicyStatus = 'active' | 'lapsed' | 'cancelled' | 'pending'
+export type RiskLevel = 'low' | 'medium' | 'high'
 
 export interface PolicySnapshot {
   policyId: string
   productName: string
-  status: string
+  status: PolicyStatus
   nextDueDate: string
   premium: number
 }
@@ -12,6 +14,7 @@ export interface ConversationMessage {
   role: 'user' | 'assistant'
   content: string
   agentId: AgentId
+  /** Unix timestamp in milliseconds */
   timestamp: number
 }
 
@@ -32,7 +35,7 @@ export interface NeedsProfile {
 export interface SessionContext {
   userId: string
   openId: string
-  riskLevel: string
+  riskLevel: RiskLevel
   policies: PolicySnapshot[]
   messages: ConversationMessage[]
   currentAgent: AgentId
