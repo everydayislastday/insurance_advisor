@@ -2,6 +2,7 @@ export interface ProductResult {
   productId: string
   name: string
   category: string
+  /** Annual premium in CNY (numeric, no unit) */
   price: number
 }
 
@@ -9,6 +10,7 @@ export interface CompetitorResult {
   productId: string
   name: string
   insurer: string
+  /** Price as a display string, may include unit (e.g. "120/年"). Use for display only. */
   price: string
 }
 

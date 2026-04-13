@@ -1,3 +1,5 @@
+import { buildDeeplink } from './navigation.js'
+
 export interface RetentionApiClient {
   getSurrenderCost(policyId: string): Promise<{ amount: number; currency: string }>
   getAlternativePlans(policyId: string): Promise<Array<{ planId: string; name: string; premium: number }>>
@@ -29,7 +31,6 @@ export async function logChurnReason(
   await logClient.log(reason, policyId)
 }
 
-export function navigateTo(scene: string, params: Record<string, string>): string {
-  const query = new URLSearchParams(params).toString()
-  return `meituan://insurance/${scene}?${query}`
+export function navigateTo(scene: string, params: Record<string, string> = {}): string {
+  return buildDeeplink(scene, params)
 }

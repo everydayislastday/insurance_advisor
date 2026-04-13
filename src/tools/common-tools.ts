@@ -1,3 +1,5 @@
+import { buildDeeplink } from './navigation.js'
+
 export interface UserProfileApiClient {
   getProfile(userId: string): Promise<{ riskLevel: string; familyInfo: Record<string, string> }>
 }
@@ -21,7 +23,6 @@ export async function collectUnmetDemand(
   await logClient.write(need, userId)
 }
 
-export function getDeeplink(scene: string, params: Record<string, string>): string {
-  const query = new URLSearchParams(params).toString()
-  return `meituan://insurance/${scene}?${query}`
+export function getDeeplink(scene: string, params: Record<string, string> = {}): string {
+  return buildDeeplink(scene, params)
 }
