@@ -23,7 +23,11 @@ export class SessionGateway {
   ): Promise<SessionContext> {
     const raw = await this.redis.get(`session:${sessionId}`)
     if (raw) {
-      return JSON.parse(raw) as SessionContext
+      try {
+        return JSON.parse(raw) as SessionContext
+      } catch {
+        // Corrupted cache — fall through to rebuild session
+      }
     }
 
     const policies = await this.policyApi.fetchPolicies(userId)

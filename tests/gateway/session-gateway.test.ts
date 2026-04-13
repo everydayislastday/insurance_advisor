@@ -44,6 +44,15 @@ describe('SessionGateway', () => {
     expect(mockRedis.set).toHaveBeenCalled()
   })
 
+  it('rebuilds session when Redis returns corrupted JSON', async () => {
+    mockRedis.get.mockResolvedValue('{ invalid json }')
+    mockPolicyApi.fetchPolicies.mockResolvedValue([])
+
+    const ctx = await gateway.getOrCreate('sess_4', 'u4', 'o4', 'high')
+    expect(ctx.userId).toBe('u4')
+    expect(mockPolicyApi.fetchPolicies).toHaveBeenCalledWith('u4')
+  })
+
   it('persists updated session back to Redis with TTL 1800', async () => {
     const ctx: SessionContext = {
       userId: 'u3', openId: 'o3', riskLevel: 'low',
