@@ -1,0 +1,1988 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>美团保险 · 智能顾问</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --mt-yellow: #FFCD00;
+    --mt-yellow-dark: #E6B800;
+    --blue-deep: #1E3A8A;
+    --blue-mid: #1D4ED8;
+    --blue-light: #3B82F6;
+    --blue-accent: #60A5FA;
+    --blue-pale: #EFF6FF;
+    --blue-border: #BFDBFE;
+    --purple-mid: #7C3AED;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --text: #0F172A;
+    --text-muted: #64748B;
+    --border: #E2E8F0;
+    --shadow: 0 2px 12px rgba(15,31,92,0.08);
+    --shadow-lg: 0 4px 20px rgba(15,31,92,0.12);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, var(--blue-deep) 0%, var(--blue-mid) 70%, var(--blue-light) 100%);
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    box-shadow: 0 2px 20px rgba(30,58,138,0.4);
+    flex-shrink: 0;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 12px;
+  }
+  .header-avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .header-info { flex: 1; }
+  .header-name { font-size: 16px; font-weight: 700; color: #FFFFFF; }
+  .header-status {
+    font-size: 12px; color: rgba(255,255,255,0.75);
+    display: flex; align-items: center; gap: 5px; margin-top: 2px;
+  }
+  .status-dot {
+    width: 7px; height: 7px; background: #4ADE80;
+    border-radius: 50%; display: inline-block;
+    box-shadow: 0 0 0 2px rgba(74,222,128,0.3);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(74,222,128,0.3); }
+    50% { box-shadow: 0 0 0 5px rgba(74,222,128,0.1); }
+  }
+  .header-user-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.3);
+    cursor: pointer;
+  }
+
+  /* Scene tabs — 在 header 底部 */
+  .scene-tabs {
+    display: flex; gap: 0;
+    border-top: 1px solid rgba(255,255,255,0.12);
+  }
+  .scene-tab {
+    flex: 1; padding: 9px 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    border: none; background: transparent;
+    color: rgba(255,255,255,0.55);
+    transition: all 0.2s;
+    text-align: center;
+    position: relative;
+    white-space: nowrap;
+  }
+  .scene-tab.active {
+    color: #FFFFFF;
+  }
+  .scene-tab.active::after {
+    content: '';
+    position: absolute; bottom: 0; left: 20%; right: 20%; height: 2.5px;
+    background: #FFCD00;
+    border-radius: 2px 2px 0 0;
+  }
+  .scene-tab:hover:not(.active) { color: rgba(255,255,255,0.85); }
+
+  /* 隐藏旧侧边栏元素（保留 id 供 JS 使用，但不显示） */
+  .sidebar { display: none; }
+
+  /* ── Main layout ── */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Chat area ── */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* Agent badge — 改为顶部悬浮小条 */
+  .agent-banner {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 16px;
+    background: var(--blue-pale);
+    border-bottom: 1px solid var(--blue-border);
+    font-size: 12px; color: var(--blue-mid);
+    flex-shrink: 0;
+  }
+  .agent-banner-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--blue-light); flex-shrink: 0;
+  }
+  .agent-banner-name { font-weight: 700; }
+  .agent-banner-desc { color: var(--text-muted); }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 16px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scroll-behavior: smooth;
+  }
+
+  /* ── Message bubbles ── */
+  .msg { display: flex; gap: 10px; max-width: 85%; }
+  .msg.user { flex-direction: row-reverse; align-self: flex-end; }
+  .msg.bot { align-self: flex-start; }
+
+  .msg-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 2px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .msg-body { display: flex; flex-direction: column; gap: 4px; }
+  .msg.user .msg-body { align-items: flex-end; }
+
+  .bubble {
+    padding: 11px 15px;
+    border-radius: 20px;
+    font-size: 14px; line-height: 1.65;
+    max-width: 100%;
+  }
+  .msg.bot .bubble {
+    background: var(--card);
+    border-radius: 4px 20px 20px 20px;
+    box-shadow: var(--shadow);
+    color: var(--text);
+  }
+  .msg.user .bubble {
+    background: linear-gradient(135deg, var(--blue-mid) 0%, var(--blue-light) 100%);
+    border-radius: 20px 4px 20px 20px;
+    color: #FFFFFF;
+    font-weight: 500;
+    box-shadow: 0 3px 14px rgba(29,78,216,0.35);
+  }
+
+  /* Agent tag */
+  .agent-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 700;
+    padding: 2px 8px; border-radius: 20px;
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+  }
+  .tag-router   { background: #EDE9FE; color: #6D28D9; }
+  .tag-presale  { background: var(--blue-pale); color: var(--blue-mid); }
+  .tag-aftersale{ background: #DCFCE7; color: #15803D; }
+  .tag-retention{ background: #FEF3C7; color: #B45309; }
+
+  /* Quick chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .chip {
+    padding: 7px 16px; border-radius: 100px;
+    background: white;
+    border: 1.5px solid var(--blue-border);
+    font-size: 13px; cursor: pointer; color: var(--blue-mid);
+    transition: all 0.15s; font-weight: 500;
+    box-shadow: 0 1px 4px rgba(15,31,92,0.06);
+  }
+  .chip:hover {
+    background: var(--blue-pale);
+    border-color: var(--blue-light);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(29,78,216,0.15);
+  }
+  .chip:active { transform: translateY(0); }
+
+  /* Product card */
+  .product-card {
+    background: white; border-radius: 16px;
+    border: none;
+    overflow: hidden; margin-top: 8px;
+    box-shadow: var(--shadow-lg);
+  }
+  .product-card-header {
+    background: linear-gradient(135deg, var(--mt-yellow) 0%, var(--mt-yellow-dark) 100%);
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .product-icon { font-size: 26px; }
+  .product-name { font-size: 15px; font-weight: 700; color: #1A1A2E; }
+  .product-tagline { font-size: 12px; color: #4B5563; margin-top: 2px; }
+  .product-body { padding: 14px 16px; }
+  .product-price {
+    font-size: 24px; font-weight: 800;
+    color: var(--blue-deep);
+    display: flex; align-items: baseline; gap: 4px;
+  }
+  .product-price span { font-size: 13px; font-weight: 400; color: var(--text-muted); }
+  .product-features { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; }
+  .feature { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #374151; }
+  .feature::before { content: "✓"; color: #16A34A; font-weight: 700; flex-shrink: 0; }
+  .product-cta {
+    margin-top: 14px; width: 100%;
+    padding: 11px;
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-light));
+    color: #FFFFFF;
+    border: none; border-radius: 12px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 3px 10px rgba(29,78,216,0.3);
+  }
+  .product-cta:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 5px 14px rgba(29,78,216,0.4); }
+  .product-cta-ready {
+    background: linear-gradient(135deg, #15803D, #16A34A) !important;
+    box-shadow: 0 3px 10px rgba(22,163,74,0.35) !important;
+  }
+
+  /* Policy card */
+  .policy-card {
+    background: white; border-radius: 16px;
+    border: none;
+    padding: 14px 16px; margin-top: 8px;
+    box-shadow: var(--shadow-lg);
+  }
+  .policy-row {
+    display: flex; justify-content: space-between;
+    padding: 7px 0; border-bottom: 1px solid var(--bg);
+    font-size: 13px;
+  }
+  .policy-row:last-child { border-bottom: none; }
+  .policy-label { color: var(--text-muted); }
+  .policy-value { font-weight: 600; color: var(--text); }
+  .policy-status-badge {
+    display: inline-block; padding: 2px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700;
+    background: #DCFCE7; color: #15803D;
+  }
+
+  /* Typing indicator */
+  .typing {
+    display: flex; align-items: center; gap: 6px;
+    padding: 11px 15px; background: white;
+    border-radius: 4px 20px 20px 20px;
+    box-shadow: var(--shadow);
+    width: fit-content;
+  }
+  .typing-dot {
+    width: 7px; height: 7px;
+    background: var(--blue-accent);
+    border-radius: 50%; animation: bounce 1.2s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  /* ── Input area ── */
+  .input-area {
+    padding: 12px 16px 16px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .input-row {
+    display: flex; gap: 10px; align-items: flex-end;
+  }
+  .input-box {
+    flex: 1; padding: 11px 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 24px; font-size: 14px;
+    outline: none; resize: none;
+    font-family: inherit; line-height: 1.5;
+    max-height: 100px; overflow-y: auto;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .input-box:focus {
+    border-color: var(--blue-light);
+    box-shadow: 0 0 0 3px rgba(96,165,250,0.2);
+    background: #FFFFFF;
+  }
+  .send-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-light));
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0; color: white;
+    transition: all 0.15s;
+    box-shadow: 0 3px 12px rgba(29,78,216,0.4);
+  }
+  .send-btn:hover { transform: scale(1.06); box-shadow: 0 5px 16px rgba(29,78,216,0.5); }
+  .send-btn:active { transform: scale(0.95); }
+
+  /* Disclaimer */
+  .disclaimer {
+    text-align: center; font-size: 11px; color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  /* System message */
+  .sys-msg {
+    text-align: center; font-size: 11.5px; color: var(--text-muted);
+    padding: 5px 14px; background: rgba(255,255,255,0.8);
+    border-radius: 20px; align-self: center;
+    border: 1px solid var(--border);
+  }
+
+  /* Scrollbar */
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 2px; }
+
+  /* Fade in */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg, .sys-msg { animation: fadeUp 0.22s ease; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <!-- AI 头像：蓝紫渐变 + 盾牌图标 -->
+    <div class="header-avatar">
+      <svg width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#7C3AED"/>
+            <stop offset="100%" stop-color="#3B82F6"/>
+          </linearGradient>
+        </defs>
+        <circle cx="21" cy="21" r="21" fill="url(#hg)"/>
+        <path d="M21 10 L30 14 L30 22 C30 27.5 26 32 21 33.5 C16 32 12 27.5 12 22 L12 14 Z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M17 21.5 L19.5 24 L25 18.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
+    <div class="header-info">
+      <div class="header-name">美团保险顾问</div>
+      <div class="header-status"><span class="status-dot"></span>智能顾问 · 在线服务</div>
+    </div>
+    <!-- 用户头像：橙色渐变 + 人物轮廓 -->
+    <div class="header-user-avatar">
+      <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="ug" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#F97316"/>
+            <stop offset="100%" stop-color="#FBBF24"/>
+          </linearGradient>
+        </defs>
+        <circle cx="17" cy="17" r="17" fill="url(#ug)"/>
+        <circle cx="17" cy="13" r="5" fill="white" opacity="0.9"/>
+        <path d="M7 28 C7 22.5 11.5 18 17 18 C22.5 18 27 22.5 27 28" fill="white" opacity="0.9"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- 隐藏侧边栏（保留 id 供 JS 使用） -->
+<div class="sidebar" style="display:none">
+  <div class="agent-badge" id="agent-badge">
+    <div class="agent-badge-name" id="badge-name">售前顾问</div>
+    <div class="agent-badge-desc" id="badge-desc">需求挖掘 · 产品推荐</div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <!-- Chat -->
+  <div class="chat-area">
+    <!-- Agent 状态条 -->
+    <div class="agent-banner" id="agent-banner">
+      <div class="agent-banner-dot"></div>
+      <span class="agent-banner-name" id="badge-name2">Router Agent</span>
+      <span class="agent-banner-desc" id="badge-desc2">· 意图识别 · 智能路由</span>
+    </div>
+    <div class="messages" id="messages"></div>
+    <div class="input-area">
+      <div class="input-row">
+        <textarea class="input-box" id="input" placeholder="输入您的问题..." rows="1"
+          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" onclick="sendMessage()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+      <div class="disclaimer">AI 回复仅供参考，保障详情以条款为准 · 退保损失金额来自系统接口</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Scene definitions ──
+const SCENES = {
+  router: {
+    agentName: 'Router Agent',
+    agentDesc: '意图识别 · 智能路由',
+    navActive: 'nav-router',
+    greeting: [
+      {
+        type: 'bot', tag: 'router', tagLabel: 'Router',
+        text: '您好！我是美团保险智能顾问 🛡️\n\n无论您是想咨询保险、查询保单，还是有退保方面的问题，都可以直接告诉我。\n\n请问有什么可以帮您？',
+        chips: ['我想买保险', '查询我的保单', '我想退保']
+      }
+    ],
+    flows: {
+      '我想买保险': null,   // 路由到 presale，由 routeToScene 处理
+      '查询我的保单': null, // 路由到 aftersale
+      '我想退保': null,     // 路由到 retention
+    }
+  },
+  presale: {
+    agentName: '售前顾问',
+    agentDesc: '需求挖掘 · 产品推荐',
+    navActive: 'nav-presale',
+    greeting: [
+      { type: 'sys', text: '已进入售前咨询场景 · Router Agent 意图识别: 售前 (置信度 0.94)' },
+      {
+        type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+        text: '您好！我是美团保险智能顾问 🛡️\n\n我可以帮您：\n• 挖掘适合您的保险需求\n• 推荐美团自营产品\n• 对比主流保司同类产品\n\n请问您今天想了解哪类保险？',
+        chips: ['意外险', '健康险', '重疾险', '寿险', '宝宝险', '配置建议']
+      }
+    ],
+    // flows 使用 "当前险种:步骤key" 格式区分不同险种的同名步骤
+    flows: {
+      // ── 意外险流程 ──
+      '意外险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '好的！为了给您推荐最合适的意外险，我想先了解一下您的情况。\n\n**请问您的年龄段是？**',
+          chips: ['意外险:18-25岁', '意外险:26-35岁', '意外险:36-45岁', '意外险:46岁以上'],
+          chipLabels: ['18-25岁', '26-35岁', '36-45岁', '46岁以上'] },
+      ],
+      '意外险:26-35岁': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解了！26-35岁是人生责任最重的阶段，保障需求很高。\n\n**您的月预算大概是多少？**',
+          chips: ['意外险:50元以内', '意外险:50-100元', '意外险:100-200元', '意外险:200元以上'],
+          chipLabels: ['50元以内', '50-100元', '100-200元', '200元以上'] },
+      ],
+      '意外险:18-25岁': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '18-25岁正值青春，意外险性价比极高！\n\n**您的月预算大概是多少？**',
+          chips: ['意外险:50元以内', '意外险:50-100元', '意外险:100-200元'],
+          chipLabels: ['50元以内', '50-100元', '100-200元'] },
+      ],
+      '意外险:36-45岁': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '36-45岁是家庭支柱阶段，建议保额适当提高。\n\n**您的月预算大概是多少？**',
+          chips: ['意外险:50-100元', '意外险:100-200元', '意外险:200元以上'],
+          chipLabels: ['50-100元', '100-200元', '200元以上'] },
+      ],
+      '意外险:46岁以上': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '46岁以上建议选择保障全面的综合意外险。\n\n**您的月预算大概是多少？**',
+          chips: ['意外险:50-100元', '意外险:100-200元', '意外险:200元以上'],
+          chipLabels: ['50-100元', '100-200元', '200元以上'] },
+      ],
+      '意外险:50元以内': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '根据您的情况，为您推荐高性价比意外险：',
+          card: {
+            icon: '🛡️',
+            name: '美团意外轻享险',
+            tagline: '入门首选 · 基础保障',
+            price: '36',
+            unit: '元/年',
+            features: ['意外身故/残疾最高50万', '意外医疗2万', '7天无理由退保'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['核保:意外险', '理赔详情:意外险', '对比竞品:意外险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '意外险:50-100元': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '根据您的情况，为您推荐以下产品：',
+          card: {
+            icon: '🛡️',
+            name: '美团意外无忧险',
+            tagline: '全面保障 · 高性价比首选',
+            price: '88',
+            unit: '元/年',
+            features: ['意外身故/残疾最高100万', '意外医疗5万（含自费药）', '住院津贴100元/天', '全球救援服务', '7天无理由退保'],
+          },
+          text2: '同时，平安、太平洋等主流保司同类产品价格在 120-180元/年，保障范围相近但理赔便捷度稍弱。\n\n您对这款产品感兴趣吗？',
+          chips: ['核保:意外险', '理赔详情:意外险', '对比竞品:意外险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '意外险:100-200元': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '预算充足，可以选择保障更全面的产品：',
+          card: {
+            icon: '🛡️',
+            name: '美团意外全保险',
+            tagline: '旗舰保障 · 全面覆盖',
+            price: '168',
+            unit: '元/年',
+            features: ['意外身故/残疾最高200万', '意外医疗10万（0免赔）', '住院津贴200元/天', '驾乘意外额外赔付', '全球紧急救援'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['核保:意外险', '理赔详情:意外险', '对比竞品:意外险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '意外险:200元以上': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '预算充裕，为您推荐旗舰版：',
+          card: {
+            icon: '🛡️',
+            name: '美团意外全保险·尊享版',
+            tagline: '顶级保障 · 尊享服务',
+            price: '298',
+            unit: '元/年',
+            features: ['意外身故/残疾最高500万', '意外医疗20万（0免赔）', '住院津贴300元/天', '驾乘/航空意外额外赔付', '专属绿通理赔服务'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['核保:意外险', '理赔详情:意外险', '对比竞品:意外险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '意外险购买': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '太好了！正在为您跳转到产品详情页 🎉\n\n**DeepLink 已生成：**\n`meituan://insurance/product/ACCIDENT_001`\n\n点击后可直接进入购买流程。祝您购险顺利！如有疑问随时联系我。',
+          chips: ['还有其他问题', '返回首页'] },
+      ],
+
+      // ── 重疾险流程 ──
+      '重疾险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '好的！重疾险主要覆盖恶性肿瘤、心梗、脑卒中等重大疾病，确诊即赔，可用于治疗及康复期间的收入补偿。\n\n**请问您的年龄段是？**',
+          chips: ['重疾险:18-25岁', '重疾险:26-35岁', '重疾险:36-45岁', '重疾险:46岁以上'],
+          chipLabels: ['18-25岁', '26-35岁', '36-45岁', '46岁以上'] },
+      ],
+      '重疾险:18-25岁': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '18-25岁投保重疾险费率最低，是锁定低费率的最佳时机！\n\n**您希望保额是多少？**',
+          chips: ['重疾险:30万保额', '重疾险:50万保额', '重疾险:100万保额'],
+          chipLabels: ['30万保额', '50万保额', '100万保额'] },
+      ],
+      '重疾险:26-35岁': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '26-35岁是购买重疾险的黄金时期，费率合理且保障需求高。\n\n**您希望保额是多少？**',
+          chips: ['重疾险:30万保额', '重疾险:50万保额', '重疾险:100万保额'],
+          chipLabels: ['30万保额', '50万保额', '100万保额'] },
+      ],
+      '重疾险:36-45岁': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '36-45岁建议尽早配置，保额建议不低于年收入的3-5倍。\n\n**您希望保额是多少？**',
+          chips: ['重疾险:30万保额', '重疾险:50万保额', '重疾险:100万保额'],
+          chipLabels: ['30万保额', '50万保额', '100万保额'] },
+      ],
+      '重疾险:46岁以上': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '46岁以上投保重疾险费率较高，建议选择保障期限适中的产品。\n\n**您希望保额是多少？**',
+          chips: ['重疾险:30万保额', '重疾险:50万保额'],
+          chipLabels: ['30万保额', '50万保额'] },
+      ],
+      '重疾险:30万保额': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '根据您的情况，为您推荐以下重疾险产品：',
+          card: {
+            icon: '❤️',
+            name: '美团重疾守护险·基础版',
+            tagline: '100种重疾保障 · 入门首选',
+            price: '980',
+            unit: '元/年',
+            features: ['100种重大疾病，确诊即赔30万', '60种轻症额外赔付15万', '保障期至70岁', '等待期90天'],
+          },
+          text2: '平安、友邦同类产品年费约1200-1500元，保障范围相近。\n\n您对这款产品感兴趣吗？',
+          chips: ['了解理赔流程', '理赔详情:重疾险', '对比竞品:重疾险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '重疾险:50万保额': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '50万保额是业内推荐的标准配置，为您推荐：',
+          card: {
+            icon: '❤️',
+            name: '美团重疾守护险·标准版',
+            tagline: '120种重疾保障 · 主流之选',
+            price: '1560',
+            unit: '元/年',
+            features: ['120种重大疾病，确诊即赔50万', '60种轻症额外赔付25万', '癌症二次赔付', '保障期至终身', '等待期90天'],
+          },
+          text2: '平安、太平洋同类产品年费约2000-2500元，我们的性价比更高。\n\n您对这款产品感兴趣吗？',
+          chips: ['了解理赔流程', '理赔详情:重疾险', '对比竞品:重疾险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '重疾险:100万保额': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '100万保额，保障全面！为您推荐旗舰产品：',
+          card: {
+            icon: '❤️',
+            name: '美团重疾守护险·尊享版',
+            tagline: '150种重疾保障 · 尊享全保',
+            price: '2980',
+            unit: '元/年',
+            features: ['150种重大疾病，确诊即赔100万', '80种轻症/中症分级赔付', '癌症多次赔付', '重疾豁免保费', '保障期至终身', '等待期90天'],
+          },
+          text2: '同等保额下，市场主流产品年费约4000-5000元，性价比优势明显。\n\n您对这款产品感兴趣吗？',
+          chips: ['了解理赔流程', '理赔详情:重疾险', '对比竞品:重疾险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '重疾险购买': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '太好了！正在为您跳转到产品详情页 🎉\n\n**DeepLink 已生成：**\n`meituan://insurance/product/CI_001`\n\n点击后可直接进入购买流程，填写健康告知后即可投保。祝您购险顺利！',
+          chips: ['还有其他问题', '返回首页'] },
+      ],
+
+      // ── 健康险流程 ──
+      '健康险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '健康险主要用于报销医疗费用，是社保的重要补充。\n\n**请问您目前有社保吗？**',
+          chips: ['健康险:有社保', '健康险:没有社保'],
+          chipLabels: ['有社保', '没有社保'] },
+      ],
+      '健康险:有社保': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '有社保的情况下，推荐配置百万医疗险作为补充，覆盖社保不报销的部分。\n\n**您的年龄段是？**',
+          chips: ['健康险:有社保:18-35岁', '健康险:有社保:36-50岁', '健康险:有社保:50岁以上'],
+          chipLabels: ['18-35岁', '36-50岁', '50岁以上'] },
+      ],
+      '健康险:没有社保': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '没有社保，更需要完善的医疗保障。建议选择保障范围更广的产品。\n\n**您的年龄段是？**',
+          chips: ['健康险:无社保:18-35岁', '健康险:无社保:36-50岁', '健康险:无社保:50岁以上'],
+          chipLabels: ['18-35岁', '36-50岁', '50岁以上'] },
+      ],
+      '健康险:有社保:18-35岁': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '为您推荐高性价比百万医疗险：',
+          card: {
+            icon: '🏥',
+            name: '美团百万医疗险',
+            tagline: '社保补充 · 百万保额',
+            price: '298',
+            unit: '元/年',
+            features: ['年度医疗费用最高200万', '0免赔（社保报销后）', '覆盖特需/国际部', '质子重离子治疗', '连续投保不限年龄'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['了解健康告知', '理赔详情:健康险', '对比竞品:健康险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '健康险:有社保:36-50岁': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '为您推荐适合中年人群的百万医疗险：',
+          card: {
+            icon: '🏥',
+            name: '美团百万医疗险·中青版',
+            tagline: '中年专属 · 全面保障',
+            price: '680',
+            unit: '元/年',
+            features: ['年度医疗费用最高300万', '1万免赔额', '覆盖特需/国际部', '质子重离子治疗', '慢病可投保'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['了解健康告知', '理赔详情:健康险', '对比竞品:健康险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '健康险:有社保:50岁以上': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '50岁以上投保健康险，建议选择专为中老年设计的产品：',
+          card: {
+            icon: '🏥',
+            name: '美团乐享医疗险',
+            tagline: '中老年专属 · 健康无忧',
+            price: '1280',
+            unit: '元/年',
+            features: ['年度医疗费用最高100万', '2万免赔额', '带病可投保（部分慢病）', '覆盖住院/手术', '全国医院通用'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['了解健康告知', '理赔详情:健康险', '对比竞品:健康险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '健康险:无社保:18-35岁': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '无社保情况下，为您推荐保障更全面的医疗险：',
+          card: {
+            icon: '🏥',
+            name: '美团全保医疗险',
+            tagline: '无社保专属 · 全额报销',
+            price: '580',
+            unit: '元/年',
+            features: ['年度医疗费用最高300万', '1万免赔额（无社保起算）', '门诊+住院全覆盖', '覆盖特需/国际部', '质子重离子治疗'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['了解健康告知', '理赔详情:健康险', '对比竞品:健康险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '健康险:无社保:36-50岁': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '无社保且36-50岁，建议选择保障范围广的综合医疗险：',
+          card: {
+            icon: '🏥',
+            name: '美团全保医疗险·中青版',
+            tagline: '中年全保 · 无忧保障',
+            price: '1080',
+            unit: '元/年',
+            features: ['年度医疗费用最高300万', '1万免赔额', '门诊+住院+手术全覆盖', '慢病可投保（部分）'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['了解健康告知', '理赔详情:健康险', '对比竞品:健康险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '健康险:无社保:50岁以上': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '无社保且50岁以上，推荐专为中老年设计的综合医疗险：',
+          card: {
+            icon: '🏥',
+            name: '美团乐享医疗险·全保版',
+            tagline: '中老年全保 · 全面守护',
+            price: '2180',
+            unit: '元/年',
+            features: ['年度医疗费用最高150万', '2万免赔额', '门诊+住院+手术全覆盖', '带病可投保（部分慢病）'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['了解健康告知', '理赔详情:健康险', '对比竞品:健康险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '健康险购买': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '太好了！正在为您跳转到产品详情页 🎉\n\n**DeepLink 已生成：**\n`meituan://insurance/product/HEALTH_001`\n\n点击后可直接进入购买流程。祝您购险顺利！',
+          chips: ['还有其他问题', '返回首页'] },
+      ],
+
+      // ── 寿险流程 ──
+      '寿险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '寿险主要为家庭提供经济保障，身故后赔付保险金，是家庭经济支柱的必备保障。\n\n**您购买寿险的主要目的是？**',
+          chips: ['寿险:家庭保障', '寿险:房贷保障', '寿险:财富传承'],
+          chipLabels: ['家庭保障', '房贷保障', '财富传承'] },
+      ],
+      '寿险:家庭保障': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '为家庭提供保障，建议保额覆盖家庭3-5年支出及未来负债。\n\n**请问您的年龄段是？**',
+          chips: ['寿险:家庭:25-35岁', '寿险:家庭:36-45岁', '寿险:家庭:46岁以上'],
+          chipLabels: ['25-35岁', '36-45岁', '46岁以上'] },
+      ],
+      '寿险:房贷保障': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '房贷保障场景下，推荐选择定期寿险，保障期与贷款期匹配，保费经济实惠。\n\n**您的房贷剩余年限大概是？**',
+          chips: ['寿险:房贷:10年以内', '寿险:房贷:10-20年', '寿险:房贷:20年以上'],
+          chipLabels: ['10年以内', '10-20年', '20年以上'] },
+      ],
+      '寿险:财富传承': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '财富传承场景建议配置终身寿险，具有保费锁定、财富定向传承的优势。\n\n为您推荐：',
+          card: {
+            icon: '🌟',
+            name: '美团终身寿险·传承版',
+            tagline: '财富传承 · 终身守护',
+            price: '8800',
+            unit: '元/年',
+            features: ['保障终身，身故赔付100万', '现金价值持续增长', '指定受益人，定向传承', '豁免保费（全残）', '可附加万能账户'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['核保:寿险', '了解现金价值', '咨询专属顾问'],
+          chipLabels: ['确认投保资格', '了解现金价值', '咨询专属顾问'] },
+      ],
+      '寿险:家庭:25-35岁': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '25-35岁是家庭责任最重的阶段，推荐高保额定期寿险：',
+          card: {
+            icon: '🌟',
+            name: '美团定期寿险·家庭版',
+            tagline: '家庭守护 · 高保额低保费',
+            price: '680',
+            unit: '元/年',
+            features: ['身故/全残赔付100万', '保障至60岁', '保费豁免（全残）', '7天无理由退保'],
+          },
+          text2: '平安、友邦同类产品年费约900-1200元。\n\n您对这款产品感兴趣吗？',
+          chips: ['核保:寿险', '理赔详情:寿险', '对比竞品:寿险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '寿险:家庭:36-45岁': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '36-45岁建议选择保障期更长的产品：',
+          card: {
+            icon: '🌟',
+            name: '美团定期寿险·标准版',
+            tagline: '全面保障 · 稳健之选',
+            price: '1280',
+            unit: '元/年',
+            features: ['身故/全残赔付100万', '保障至65岁', '保费豁免（全残）', '7天无理由退保'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['核保:寿险', '理赔详情:寿险', '对比竞品:寿险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '寿险:家庭:46岁以上': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '46岁以上推荐终身寿险，保障更全面：',
+          card: {
+            icon: '🌟',
+            name: '美团终身寿险·基础版',
+            tagline: '终身保障 · 安心之选',
+            price: '3600',
+            unit: '元/年',
+            features: ['身故/全残赔付100万', '保障终身', '现金价值稳定增长', '7天无理由退保'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['核保:寿险', '了解现金价值'],
+          chipLabels: ['确认投保资格', '了解现金价值'] },
+      ],
+      '寿险:房贷:10年以内': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '房贷10年以内，为您推荐短期定寿：',
+          card: {
+            icon: '🌟',
+            name: '美团定期寿险·房贷版',
+            tagline: '房贷专属 · 轻松守护',
+            price: '380',
+            unit: '元/年',
+            features: ['身故/全残赔付50万', '保障10年', '保费低廉', '7天无理由退保'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['核保:寿险', '理赔详情:寿险', '对比竞品:寿险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '寿险:房贷:10-20年': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '房贷10-20年，为您推荐中期定寿：',
+          card: {
+            icon: '🌟',
+            name: '美团定期寿险·房贷版',
+            tagline: '房贷专属 · 安心守护',
+            price: '680',
+            unit: '元/年',
+            features: ['身故/全残赔付100万', '保障20年', '保费豁免（全残）', '7天无理由退保'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['核保:寿险', '理赔详情:寿险', '对比竞品:寿险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '寿险:房贷:20年以上': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '房贷20年以上，建议选择长期保障：',
+          card: {
+            icon: '🌟',
+            name: '美团定期寿险·长期版',
+            tagline: '长期守护 · 房贷无忧',
+            price: '980',
+            unit: '元/年',
+            features: ['身故/全残赔付150万', '保障30年', '保费豁免（全残）', '7天无理由退保'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['核保:寿险', '理赔详情:寿险', '对比竞品:寿险'],
+          chipLabels: ['确认投保资格', '查看理赔详情', '对比竞品'] },
+      ],
+      '寿险购买': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '太好了！正在为您跳转到产品详情页 🎉\n\n**DeepLink 已生成：**\n`meituan://insurance/product/LIFE_001`\n\n点击后可直接进入购买流程。祝您购险顺利！',
+          chips: ['还有其他问题', '返回首页'] },
+      ],
+
+      // ── 核保问卷：健康险 ──
+      // 入口：产品推荐页点击"了解健康告知"
+      '了解健康告知': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '好的，我来帮您确认是否符合投保条件，只需回答几个简单问题。\n\n**问题 1/4：** 请问您目前是否患有或曾患有以下疾病？\n• 恶性肿瘤（癌症）\n• 心脏病、冠心病、心肌梗塞\n• 脑卒中（中风）、脑梗\n• 肝硬化、肾功能不全',
+          chips: ['核保:健康险:Q1:否', '核保:健康险:Q1:是'],
+          chipLabels: ['没有', '有'] },
+      ],
+      '核保:健康险:Q1:否': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '很好！\n\n**问题 2/4：** 过去 2 年内，您是否有住院治疗经历，或正在服用长期处方药？',
+          chips: ['核保:健康险:Q2:否', '核保:健康险:Q2:是'],
+          chipLabels: ['没有', '有'] },
+      ],
+      '核保:健康险:Q2:否': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '很好！\n\n**问题 3/4：** 您目前是否处于妊娠状态，或过去 3 个月内有异常检查结果未复查？',
+          chips: ['核保:健康险:Q3:否', '核保:健康险:Q3:是'],
+          chipLabels: ['没有', '有'] },
+      ],
+      '核保:健康险:Q3:否': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '很好！\n\n**问题 4/4：** 您的 BMI 是否超过 30（即体重kg÷身高m²）？',
+          chips: ['核保:健康险:Q4:否', '核保:健康险:Q4:是'],
+          chipLabels: ['未超过', '超过了'] },
+      ],
+      '核保:健康险:Q4:否': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '恭喜您！✅\n\n根据您的回答，您**符合**本产品的投保条件。\n\n在购买前，建议您了解一下理赔规则，方便日后顺利理赔。',
+          underwritingPass: 'health',
+          chips: ['理赔详情:健康险', '健康险购买'],
+          chipLabels: ['查看理赔详情', '直接购买'] },
+      ],
+      '核保:健康险:Q1:是': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '非常抱歉 😔\n\n您提到的疾病属于本产品**除外责任**范围，目前无法通过标准核保。\n\n建议您：\n• 联系人工客服，了解是否可加费承保\n• 考虑专为带病人群设计的**惠民保**产品\n\n是否需要为您推荐其他适合的产品？',
+          chips: ['了解惠民保', '联系人工客服', '返回首页'] },
+      ],
+      '核保:健康险:Q2:是': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解了。\n\n近期有住院或长期用药情况，需要人工核保进一步评估。\n\n**建议：** 提供最近一次住院病历或用药清单，由核保专员 1 个工作日内给出结论。\n\n是否申请人工核保？',
+          chips: ['申请人工核保', '返回首页'],
+          chipLabels: ['申请人工核保', '返回首页'] },
+      ],
+      '核保:健康险:Q3:是': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解了。\n\n妊娠期间或有未复查异常指标，建议等复查结果出来后再投保，以确保保障完整。\n\n您可以先收藏产品，待情况稳定后再来投保。',
+          chips: ['还有其他问题', '返回首页'] },
+      ],
+      '核保:健康险:Q4:是': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解了。\n\nBMI 超过 30 需要人工核保，可能需要加收 **10%-30%** 的附加保费，具体以核保结果为准。\n\n是否申请人工核保？',
+          chips: ['申请人工核保', '返回首页'],
+          chipLabels: ['申请人工核保', '返回首页'] },
+      ],
+
+      // ── 核保问卷：重疾险 ──
+      '了解理赔流程': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '好的，我先帮您确认投保资格，再介绍理赔流程。\n\n**问题 1/4：** 过去 5 年内，您是否被确诊或疑似患有恶性肿瘤、白血病？',
+          chips: ['核保:重疾险:Q1:否', '核保:重疾险:Q1:是'],
+          chipLabels: ['没有', '有'] },
+      ],
+      '核保:重疾险:Q1:否': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '很好！\n\n**问题 2/4：** 过去 3 年内，您是否患有心脏病、脑血管疾病，或做过心脏手术？',
+          chips: ['核保:重疾险:Q2:否', '核保:重疾险:Q2:是'],
+          chipLabels: ['没有', '有'] },
+      ],
+      '核保:重疾险:Q2:否': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '很好！\n\n**问题 3/4：** 您是否患有糖尿病、肝硬化、肾功能不全，或长期透析？',
+          chips: ['核保:重疾险:Q3:否', '核保:重疾险:Q3:是'],
+          chipLabels: ['没有', '有'] },
+      ],
+      '核保:重疾险:Q3:否': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '很好！\n\n**问题 4/4：** 过去 1 年内，您是否有连续住院超过 7 天，或被医生建议手术但尚未进行？',
+          chips: ['核保:重疾险:Q4:否', '核保:重疾险:Q4:是'],
+          chipLabels: ['没有', '有'] },
+      ],
+      '核保:重疾险:Q4:否': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '恭喜您！✅\n\n根据您的回答，您**符合**本产品的投保条件。\n\n在购买前，建议您了解一下理赔规则，方便日后顺利理赔。',
+          underwritingPass: 'ci',
+          chips: ['理赔详情:重疾险', '重疾险购买'],
+          chipLabels: ['查看理赔详情', '直接购买'] },
+      ],
+      '核保:重疾险:Q1:是': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '非常抱歉 😔\n\n恶性肿瘤病史属于重疾险**拒保条件**，目前无法投保标准重疾险。\n\n建议您了解专为带病人群设计的**防癌险**，保障范围更有针对性，核保条件更宽松。',
+          chips: ['了解防癌险', '联系人工客服', '返回首页'] },
+      ],
+      '核保:重疾险:Q2:是': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解了。\n\n心脑血管病史需要人工核保，可能结果为：\n• **标准承保**（轻微病史）\n• **除外承保**（相关疾病不赔）\n• **加费承保**\n• **延期/拒保**\n\n建议提供近期体检报告申请人工核保，1 个工作日内出结论。',
+          chips: ['申请人工核保', '返回首页'] },
+      ],
+      '核保:重疾险:Q3:是': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解了。\n\n糖尿病/肝肾疾病需要人工核保评估，可能以**除外承保**方式投保（相关并发症不在保障范围内）。\n\n是否申请人工核保？',
+          chips: ['申请人工核保', '返回首页'] },
+      ],
+      '核保:重疾险:Q4:是': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解了。\n\n近期有住院或待手术情况，建议**治疗结束并康复后**再申请投保，以获得完整保障。\n\n您可以先收藏产品，待康复后再来。',
+          chips: ['还有其他问题', '返回首页'] },
+      ],
+
+      // ── 核保问卷：意外险 ──
+      // 意外险核保较宽松，主要看职业类别
+      '核保:意外险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '意外险核保主要看职业风险等级，我来帮您确认。\n\n**问题 1/2：** 请问您的职业类型是？',
+          chips: ['核保:意外险:Q1:内勤', '核保:意外险:Q1:外勤', '核保:意外险:Q1:高危'],
+          chipLabels: ['内勤/办公室（程序员、教师、销售等）', '外勤/体力劳动（司机、快递等）', '高危职业（矿工、建筑高空作业等）'] },
+      ],
+      '核保:意外险:Q1:内勤': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '很好！\n\n**问题 2/2：** 过去 1 年内，您是否有肢体残疾或行动障碍？',
+          chips: ['核保:意外险:Q2:否', '核保:意外险:Q2:是'],
+          chipLabels: ['没有', '有'] },
+      ],
+      '核保:意外险:Q1:外勤': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解。外勤/体力劳动属于 **2-3 类职业**，本产品可以承保，但部分高风险作业场景下的意外可能适用特别约定。\n\n**问题 2/2：** 过去 1 年内，您是否有肢体残疾或行动障碍？',
+          chips: ['核保:意外险:Q2:否', '核保:意外险:Q2:是'],
+          chipLabels: ['没有', '有'] },
+      ],
+      '核保:意外险:Q1:高危': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '非常抱歉 😔\n\n本产品**不承保 4 类及以上高危职业**（矿工、爆破、高空作业等）。\n\n建议您咨询专属高危职业意外险，保障更匹配。',
+          chips: ['联系人工客服', '返回首页'] },
+      ],
+      '核保:意外险:Q2:否': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '恭喜您！✅\n\n根据您的回答，您**符合**本产品的投保条件。\n\n在购买前，建议您了解一下理赔规则，方便日后顺利理赔。',
+          underwritingPass: 'accident',
+          chips: ['理赔详情:意外险', '意外险购买'],
+          chipLabels: ['查看理赔详情', '直接购买'] },
+      ],
+      '核保:意外险:Q2:是': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解了。\n\n已有肢体残疾情况需要人工核保，已有残疾部位可能被**除外承保**（该部位相关的意外不赔），其他部位正常保障。\n\n是否申请人工核保？',
+          chips: ['申请人工核保', '返回首页'] },
+      ],
+
+      // ── 核保问卷：寿险 ──
+      '核保:寿险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '好的，我来帮您确认寿险投保资格。\n\n**问题 1/3：** 过去 2 年内，您是否被确诊为恶性肿瘤、艾滋病，或有自杀/自伤行为记录？',
+          chips: ['核保:寿险:Q1:否', '核保:寿险:Q1:是'],
+          chipLabels: ['没有', '有'] },
+      ],
+      '核保:寿险:Q1:否': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '很好！\n\n**问题 2/3：** 您是否患有心脏病、高血压（收缩压≥160），或脑血管疾病？',
+          chips: ['核保:寿险:Q2:否', '核保:寿险:Q2:是'],
+          chipLabels: ['没有', '有'] },
+      ],
+      '核保:寿险:Q2:否': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '很好！\n\n**问题 3/3：** 过去 1 年内，您是否有连续住院超过 14 天，或被告知需要手术但尚未进行？',
+          chips: ['核保:寿险:Q3:否', '核保:寿险:Q3:是'],
+          chipLabels: ['没有', '有'] },
+      ],
+      '核保:寿险:Q3:否': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '恭喜您！✅\n\n根据您的回答，您**符合**本产品的投保条件。\n\n在购买前，建议您了解一下理赔规则，方便日后顺利理赔。',
+          underwritingPass: 'life',
+          chips: ['理赔详情:寿险', '寿险购买'],
+          chipLabels: ['查看理赔详情', '直接购买'] },
+      ],
+      '核保:寿险:Q1:是': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '非常抱歉 😔\n\n恶性肿瘤或艾滋病属于寿险**拒保条件**，目前无法投保。\n\n如有其他需求，欢迎咨询人工客服了解更多选项。',
+          chips: ['联系人工客服', '返回首页'] },
+      ],
+      '核保:寿险:Q2:是': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解了。\n\n心血管疾病史需要人工核保，可能以**加费**或**除外**方式承保。建议提供近期体检报告申请评估。',
+          chips: ['申请人工核保', '返回首页'] },
+      ],
+      '核保:寿险:Q3:是': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解了。\n\n近期有住院或待手术情况，建议**治疗结束并康复后**再申请投保，以获得完整保障。',
+          chips: ['还有其他问题', '返回首页'] },
+      ],
+
+      // ── 理赔详情 ──
+      '理赔详情:健康险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**百万医疗险 · 理赔完整指南**\n\n**一、哪些情况可以理赔？**\n• 因疾病或意外导致的**住院治疗**费用\n• 住院前后 **30天内** 的门诊、检查费用\n• **特需病房、国际部**就医费用（需提前申请直付）\n• **质子重离子**等特殊治疗费用\n• 经医生开具的**院外特药**（靶向药等，需在保障范围内）\n\n**二、哪些情况不赔？**\n• 等待期（30天）内发生的疾病\n• 美容整形、牙科（非意外）、视力矫正\n• 未经社保报销的部分（有社保版本）\n• 投保前已有的既往症\n\n**三、理赔所需材料**\n• 出院小结（加盖医院公章）\n• 费用清单及发票原件\n• 社保报销结算单（有社保版本必须提供）\n• 被保险人身份证及银行卡信息\n• 意外情况需额外提供：事故证明\n\n**四、理赔流程**\n① 出院后 **30天内** 在 App 提交理赔申请\n② 上传材料，系统自动预审（约 **1小时**）\n③ 核赔专员人工审核（**1-3个工作日**）\n④ 审核通过后 **24小时内** 打款至绑定银行卡\n⑤ 复杂案件（金额超5万）可能延长至 **7个工作日**\n\n**五、绿通服务**\n• 住院前可申请**费用直付**，无需垫付\n• 拨打专属理赔热线 400-xxx-xxxx 获取一对一指导' },
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解完理赔规则，接下来需要确认您的投保资格。',
+          chips: ['了解健康告知'],
+          chipLabels: ['确认投保资格'] },
+      ],
+
+      '理赔详情:重疾险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**重疾险 · 理赔完整指南**\n\n**一、哪些情况可以理赔？**\n• 确诊合同约定的 **120种重大疾病**（含恶性肿瘤、心梗、脑卒中等）\n• 确诊 **60种轻症/中症**，按比例赔付（25%-50%保额）\n• 癌症治疗满3年后复发，可**二次申请**赔付\n• 因重疾导致全残，额外赔付\n\n**二、哪些情况不赔？**\n• 等待期（**90天**）内确诊的重疾\n• 投保前已患的疾病（既往症）\n• 不在合同约定病种范围内的疾病\n• 故意自伤、违法犯罪导致的疾病\n\n**三、理赔所需材料**\n• **确诊报告**（医院出具，注明病名）\n• **病理报告**（恶性肿瘤必须提供）\n• 住院病历或门诊病历\n• 被保险人身份证\n• 受益人银行卡信息\n• 若为轻症：额外提供治疗方案说明\n\n**四、理赔流程**\n① 确诊后**随时**可在 App 发起理赔申请\n② 上传确诊材料，系统自动核验病种（约 **2小时**）\n③ 核赔专员审核（**3个工作日**）\n④ 审核通过后 **24小时内** 一次性赔付至银行卡\n⑤ 金额超10万的案件，可能需要 **5-7个工作日**\n\n**五、特别说明**\n• 赔付金额与实际医疗花费**无关**，确诊即按保额全额赔付\n• 赔付后保单**继续有效**（终身版），可继续保障其他重疾\n• 轻症赔付后，重疾保额**不扣减**' },
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解完理赔规则，接下来需要确认您的投保资格。',
+          chips: ['了解理赔流程'],
+          chipLabels: ['确认投保资格'] },
+      ],
+
+      '理赔详情:意外险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**意外险 · 理赔完整指南**\n\n**一、哪些情况可以理赔？**\n• 因**外来、突发、非本意**事故导致的身故或残疾\n• 意外事故导致的**医疗费用**（门诊+住院）\n• 意外住院期间的**住院津贴**（100元/天，最长180天）\n• 交通意外（驾乘险额外赔付）\n• 自然灾害导致的意外\n\n**二、哪些情况不赔？**\n• 疾病导致的身故（非意外）\n• 醉酒驾车、无证驾驶期间发生的意外\n• 故意自伤、自杀\n• 参与违法犯罪活动期间\n• 职业运动、极限运动（未附加特别条款）\n• 战争、核辐射\n\n**三、理赔所需材料**\n**医疗报销：**\n• 意外事故证明（交警报告/急诊记录/工伤认定书）\n• 门诊/住院病历\n• 费用发票及清单\n• 社保报销结算单（有社保需提供）\n\n**身故/残疾：**\n• 死亡证明或残疾鉴定报告\n• 事故证明\n• 被保险人/受益人身份证\n• 银行卡信息\n\n**四、理赔流程**\n① 事故发生后 **30天内** 在 App 发起申请\n② 上传材料，系统核验意外属性（约 **1小时**）\n③ 核赔审核（**1-3个工作日**）\n④ 审核通过 **24小时内** 打款\n⑤ 残疾理赔需伤情稳定后（一般伤后**6个月**）再申请\n\n**五、小贴士**\n• 发生意外后**第一时间**保留现场证据（照片/报警记录）\n• 就医时说明是意外导致，便于医院出具相应证明' },
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解完理赔规则，接下来需要确认您的投保资格。',
+          chips: ['核保:意外险'],
+          chipLabels: ['确认投保资格'] },
+      ],
+
+      '理赔详情:寿险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**寿险 · 理赔完整指南**\n\n**一、哪些情况可以理赔？**\n• 被保险人**身故**（任何原因，等待期后）\n• 被保险人达到合同约定的**全残**标准\n• 意外导致的身故：**无等待期**，立即生效\n• 疾病导致的身故：等待期（**180天**）后生效\n\n**二、哪些情况不赔？**\n• 等待期内因疾病身故（退还已缴保费）\n• 投保 **2年内**故意自杀（2年后自杀可赔）\n• 受益人故意杀害被保险人\n• 战争、核辐射\n• 被保险人参与违法犯罪活动期间\n\n**三、理赔所需材料**\n**身故理赔：**\n• 死亡医学证明书（医院出具）\n• 户籍注销证明（派出所出具）\n• 被保险人身份证原件\n• 受益人身份证及银行卡\n• 若为意外身故：事故证明材料\n• 若为疾病身故：住院病历/死亡原因说明\n\n**全残理赔：**\n• 残疾鉴定报告（二级以上医院出具）\n• 相关检查报告\n\n**四、理赔流程**\n① 由**受益人**在 App 或电话发起申请\n② 提交材料，专属理赔专员对接（**1个工作日**内联系）\n③ 材料核验与审核（**3-5个工作日**）\n④ 审核通过 **24小时内** 打款至受益人银行卡\n⑤ 大额案件（超50万）可能需要 **7-10个工作日**\n\n**五、受益人须知**\n• 投保时建议**指定受益人**，避免身故后赔款作为遗产处理\n• 受益人可随时变更，需被保险人签字确认\n• 多个受益人时按约定比例分配赔款' },
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '了解完理赔规则，接下来需要确认您的投保资格。',
+          chips: ['核保:寿险'],
+          chipLabels: ['确认投保资格'] },
+      ],
+
+      // ── 宝宝险流程（来自图片：宝宝保险真正有用的就4种）──
+      '宝宝险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '宝宝保险真正有用的就 **4 种**，每一种都有其不可替代的作用：\n\n• **重疾险** — 确诊重疾即赔一笔补偿金，用于看病、康复，年龄越小越便宜，至少50万保额\n• **医疗险** — 报销因疾病或意外导致的住院、门急诊治疗费用，刚需，人手一份\n• **意外险** — 意外导致的身故、伤残、医疗费用补偿，杠杆高、易出险，儿童必备\n• **教育金** — 从孩子幼年存钱，通过时间复利，在未来孩子上学或婚嫁时增值出一笔可观备用金\n\n**配置建议：** 宝宝 = 重疾 + 医疗 + 意外 + 教育/婚嫁金\n\n请问您想先了解哪类？',
+          chips: ['宝宝:重疾险', '宝宝:医疗险', '宝宝:意外险', '宝宝:教育金'] },
+      ],
+      '宝宝:重疾险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**宝宝重疾险**\n\n• **作用：** 确诊重大疾病即可赔付一笔较大金额的补偿金，用于看病、大病后的康复营养补充，以及大病后2-3年无法工作导致的收入损失\n• **建议：** 年龄越小越便宜，至少50万保额，保额越高越好，罹患大病可赔付，一生健康也可当作储蓄\n\n为您推荐：',
+          card: {
+            icon: '👶',
+            name: '美团少儿重疾守护险',
+            tagline: '儿童专属 · 100种重疾保障',
+            price: '680',
+            unit: '元/年',
+            features: ['100种重大疾病，确诊即赔50万', '60种轻症额外赔付', '特定儿童高发疾病额外赔付', '保障至成年（18岁）可转大人', '等待期90天'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['了解理赔流程', '宝宝:医疗险', '宝宝:意外险'],
+          chipLabels: ['确认投保资格', '了解医疗险', '了解意外险'] },
+      ],
+      '宝宝:医疗险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**宝宝医疗险**\n\n• **作用：** 主要解决治病问题，报销因疾病或意外导致住院、门急诊产生的治疗费用\n• **建议：** 刚需，人手一份，根据家庭习惯和需求，可有高端医疗、中端医疗、百万医疗等不同产品选择\n\n为您推荐：',
+          card: {
+            icon: '🏥',
+            name: '美团少儿百万医疗险',
+            tagline: '儿童专属医疗 · 住院全报销',
+            price: '198',
+            unit: '元/年',
+            features: ['年度医疗费用最高200万', '0免赔（社保报销后）', '覆盖住院+门急诊', '儿童特殊用药保障', '全国儿童医院通用'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['了解医疗险分层', '宝宝:重疾险', '宝宝:意外险'],
+          chipLabels: ['了解医疗险分层', '了解重疾险', '了解意外险'] },
+      ],
+      '宝宝:意外险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**宝宝意外险**\n\n• **作用：** 意外导致的身故、伤残、医疗费用的补偿，杠杆高、易出险，儿童必备\n• **建议：** 根据家庭情况，保额几万到几十万不等，意外医疗补偿金建议至少一万起，就医范围能涵盖私立、国际、特需，紧急情况时能更快更好地就医\n\n为您推荐：',
+          card: {
+            icon: '🛡️',
+            name: '美团少儿综合意外险',
+            tagline: '儿童专属 · 意外全保障',
+            price: '128',
+            unit: '元/年',
+            features: ['意外身故/残疾最高50万', '意外医疗2万（含私立/国际医院）', '住院津贴50元/天', '骨折/烫伤额外赔付', '全球救援服务'],
+          },
+          text2: '您对这款产品感兴趣吗？',
+          chips: ['核保:意外险', '宝宝:重疾险', '宝宝:医疗险'],
+          chipLabels: ['确认投保资格', '了解重疾险', '了解医疗险'] },
+      ],
+      '宝宝:教育金': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**宝宝教育金/婚嫁金（年金险）**\n\n• **作用：** 跨越时空的爱——从孩子幼年时期存储一部分钱，通过时间的复利，在未来孩子上学或者婚嫁时，已增值出一笔可观的备用金\n• **建议：** 根据家庭情况，丰俭由人，几万到几十万不等，终身复利，随时可以领取\n\n为您推荐：',
+          card: {
+            icon: '🌟',
+            name: '美团少儿教育金年金险',
+            tagline: '复利增值 · 教育婚嫁两用',
+            price: '5000',
+            unit: '元/年起',
+            features: ['每年存入，终身复利增值', '孩子18岁起可按年领取教育金', '婚嫁/创业可一次性领取', '保单贷款功能，资金灵活', '身故返还已缴保费'],
+          },
+          text2: '教育金是给孩子未来的礼物，越早规划复利效果越好。您对这款产品感兴趣吗？',
+          chips: ['咨询专属顾问', '宝宝:重疾险', '宝宝:医疗险'],
+          chipLabels: ['咨询专属顾问', '了解重疾险', '了解医疗险'] },
+      ],
+
+      // ── 配置建议（来自图片：保险配置逻辑思维导图）──
+      '配置建议': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**保险配置逻辑**\n\n保险配置有一套科学的顺序和逻辑，帮您少走弯路：\n\n**第一步：社保打底**\n• 职工社保：医疗+养老+失业+生育+工伤\n• 居民社保：医疗+养老\n• 少儿社保：医疗保险（出生后越早办越好）\n\n**第二步：商业险补充**\n按优先级依次配置：\n1. 医疗险（刚需，报销住院门急诊）\n2. 重疾险（确诊即赔，弥补收入损失）\n3. 意外险（刚需，杠杆高）\n4. 寿险（家庭经济支柱必备）\n5. 年金险（教育/养老储备）\n\n**配置顺序：先大人 → 再孩子 → 后老人**\n\n**配置逻辑：优先配置健康险，再配置年金险**\n\n请问您想从哪类开始？',
+          chips: ['意外险', '健康险', '重疾险', '寿险', '宝宝险'] },
+      ],
+
+      // ── 重疾险科普（来自图片：重疾险是保什么的）──
+      '了解重疾险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**重疾险设计的初衷，不仅仅是为了看病**\n\n重疾险主要保障两类损失：\n\n**显性损失**\n• **巨额医疗费用** — 国内发生率最高的重疾（恶性肿瘤），平均治疗费用在 **22-80万** 之间（数据来源：《国民防范重大疾病教育读本》）\n• **长期康复/护理费用** — 长期康复、失能请人护理都需要持续投入，且这笔费用一般不低\n\n**隐性损失**\n• **收入损失费用** — 生病后短时间内无法工作，甚至长期不能工作，收入成为一大问题\n• **家庭原有负债** — 家里有贷款负担，且因生病收入又减少，家庭的压力更大了\n• **无法承担家庭责任** — 患病后难以承担家庭的责任，比如照顾子女、赡养老人等\n\n**核心价值：符合疾病定义的理赔标准，就能赔一笔钱，赔的钱随意支配**\n\n您想了解重疾险的具体产品吗？',
+          chips: ['重疾险', '对比竞品:重疾险', '还有其他问题'] },
+      ],
+
+      // ── 医疗险分层科普（来自图片：一图看懂医疗险）──
+      '了解医疗险分层': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**一图看懂医疗险**\n\n当医疗费用高到你不敢生病时，保险会来增加我们生活的底气。\n\n医疗险从内到外分为5个层次：\n\n**① 医保（基础层）**\n• 仅公立医院普通部就诊\n• 社保内用药（2800余种/19万种）\n• 有报销比例和免赔额限制\n\n**② 惠民保**\n• 适合老年人及有既往症人群\n• 仅住院和少量特药\n• 有报销比例和免赔额\n\n**③ 百万医疗**\n• 大陆公立普通部+特需部+国际部\n• 仅住院\n• 用药不受医保限制和审核\n\n**④ 中端医疗**\n• 公立医院普通部就诊\n• 拓展社保外用药\n• 5千-1万免赔额\n• 部分产品含特药\n\n**⑤ 高端医疗（最全面）**\n• 全球/全球除美保障\n• 公立+国际+私立+港澳医院\n• 住院/门诊+住院\n• 直付（不占用医保金额）\n• 免赔额可选\n• 解决时效性和舒适性\n\n**外购药（社保外）**：进口药、新药（国内未上市）、白蛋白、丙球、肿瘤特药、进口抗生素、疫苗、齿科、生物制剂等。',
+          chips: ['健康险', '宝宝:医疗险', '还有其他问题'] },
+      ],
+
+      // ── 兜底通用 ──
+      '还有其他问题': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '当然！请问您还想了解什么？',
+          chips: ['意外险', '健康险', '重疾险', '寿险'] },
+      ],
+      '返回首页': [
+        { type: 'bot', tag: 'router', tagLabel: 'Router',
+          text: '好的，有任何问题随时告诉我 😊\n\n请问还有什么可以帮您？',
+          switchScene: 'router',
+          chips: ['我想买保险', '查询我的保单', '我想退保'] },
+      ],
+      '了解现金价值': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**终身寿险现金价值说明：**\n\n• 现金价值是保单的"储蓄部分"，随保单年度逐年增长\n• 前 5 年现金价值低于已缴保费（含附加费用），**不建议短期退保**\n• 10 年后现金价值一般超过已缴保费\n• 可申请**保单贷款**，最高借出现金价值的 80%\n• 身故赔付取保额与现金价值中**较高者**\n\n接下来需要确认您的投保资格。',
+          chips: ['核保:寿险', '还有其他问题'],
+          chipLabels: ['确认投保资格', '还有其他问题'] },
+      ],
+      '了解惠民保': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**惠民保简介：**\n\n惠民保是政府支持的普惠型补充医疗险，特点是：\n• 无健康告知，带病可投\n• 价格极低（通常 **59-99元/年**）\n• 保额较高（通常 100-300万）\n• 免赔额较高（通常 2-3万）\n\n适合有既往症、无法购买标准健康险的人群。\n\n是否需要为您查询您所在城市的惠民保产品？',
+          chips: ['查询惠民保', '联系人工客服', '返回首页'] },
+      ],
+      '了解防癌险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '**防癌险简介：**\n\n防癌险专门保障恶性肿瘤，核保条件比重疾险宽松：\n• 既往症中**非癌症**患者通常可投保\n• 确诊癌症即赔，一次性给付\n• 价格比重疾险低 40%-60%\n• 适合有慢病但无癌症史的人群\n\n是否需要为您推荐防癌险产品？',
+          chips: ['推荐防癌险', '联系人工客服', '返回首页'] },
+      ],
+
+      // ── 通用 ──
+      '申请人工核保': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '已为您发起人工核保申请 📋\n\n**后续流程：**\n1. 核保专员将在 **1个工作日**内联系您\n2. 请准备好近期体检报告或病历\n3. 核保结果将通过短信/App通知\n\n如有紧急需求，可直接拨打客服热线 **400-xxx-xxxx**。',
+          chips: ['还有其他问题', '返回首页'] },
+      ],
+      '联系人工客服': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '正在为您转接人工客服 👨‍💼\n\n**服务时间：** 周一至周日 9:00-21:00\n**客服热线：** 400-xxx-xxxx\n\n转接中，预计等待 **2分钟**以内。',
+          chips: ['返回首页'] },
+      ],
+
+      // ── 竞品对比 ──
+      '对比竞品:重疾险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '以下是美团重疾险与主流保司的对比：\n\n| 维度 | 美团重疾险 | 平安福 | 友邦守卫者 |\n|------|-----------|--------|----------|\n| 重疾种类 | 120-150种 | 100种 | 120种 |\n| 轻症/中症 | ✓ 分级赔付 | ✓ | ✓ |\n| 癌症多次赔 | ✓ | ✗ | ✓ |\n| 保费豁免 | ✓ | ✓ | ✓ |\n| 年费（50万保额）| **¥1,560** | ¥2,100 | ¥2,380 |\n| 理赔时效 | 3个工作日 | 5个工作日 | 5个工作日 |\n\n**综合来看，美团重疾险在保障范围和性价比上均有优势。**\n\n接下来需要确认您的投保资格。',
+          chips: ['了解理赔流程', '还有其他问题'],
+          chipLabels: ['确认投保资格', '还有其他问题'] },
+      ],
+      '对比竞品:意外险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '以下是美团意外险与主流保司的对比：\n\n| 维度 | 美团意外险 | 平安综合意外 | 太平洋意外险 |\n|------|-----------|------------|------------|\n| 意外身故保额 | 100万 | 100万 | 100万 |\n| 意外医疗 | 5万（含自费药）| 3万（限社保目录）| 4万 |\n| 住院津贴 | 100元/天 | 80元/天 | 100元/天 |\n| 全球救援 | ✓ | ✗ | ✓ |\n| 年费 | **¥88** | ¥128 | ¥156 |\n| 理赔时效 | 3个工作日 | 7个工作日 | 5个工作日 |\n\n**美团意外险在自费药报销和价格上有明显优势。**\n\n接下来需要确认您的投保资格。',
+          chips: ['核保:意外险', '还有其他问题'],
+          chipLabels: ['确认投保资格', '还有其他问题'] },
+      ],
+      '对比竞品:健康险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '以下是美团百万医疗险与主流产品的对比：\n\n| 维度 | 美团百万医疗 | 众安尊享e生 | 平安e生保 |\n|------|------------|-----------|----------|\n| 年度保额 | 200万 | 200万 | 200万 |\n| 免赔额 | 0（社保后）| 1万 | 1万 |\n| 特需/国际部 | ✓ | ✓ | ✗ |\n| 质子重离子 | ✓ | ✓ | ✓ |\n| 连续投保 | ✓ 不限年龄 | ✓ | ✓ |\n| 年费（30岁）| **¥298** | ¥398 | ¥358 |\n\n**0免赔额是美团百万医疗险的最大亮点，报销更方便。**\n\n接下来需要确认您的投保资格。',
+          chips: ['了解健康告知', '还有其他问题'],
+          chipLabels: ['确认投保资格', '还有其他问题'] },
+      ],
+      '对比竞品:寿险': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '以下是美团定期寿险与主流产品的对比：\n\n| 维度 | 美团定期寿险 | 平安定期寿 | 友邦定期寿 |\n|------|------------|----------|----------|\n| 保额 | 100万 | 100万 | 100万 |\n| 保障期限 | 至60岁 | 至60岁 | 至65岁 |\n| 保费豁免 | ✓（全残）| ✓ | ✓ |\n| 年费（30岁）| **¥680** | ¥980 | ¥1,100 |\n| 理赔时效 | 3个工作日 | 5个工作日 | 7个工作日 |\n| 投保便利 | App即时核保 | 需人工审核 | 需人工审核 |\n\n**美团定期寿险在价格上有30%以上的优势，且投保更便捷。**\n\n接下来需要确认您的投保资格。',
+          chips: ['核保:寿险', '还有其他问题'],
+          chipLabels: ['确认投保资格', '还有其他问题'] },
+      ],
+
+      // ── 通用 ──
+      '直接购买': [
+        { type: 'bot', tag: 'presale', tagLabel: '售前顾问',
+          text: '太好了！正在为您跳转到产品详情页 🎉\n\n**DeepLink 已生成：**\n`meituan://insurance/product/ACCIDENT_001`\n\n点击后可直接进入购买流程。祝您购险顺利！如有疑问随时联系我。',
+          chips: ['还有其他问题', '返回首页'] },
+      ],
+    },
+    defaultReply: { tag: 'presale', tagLabel: '售前顾问',
+      text: '抱歉，我暂时无法准确回答您的问题 😔\n\n为了给您提供更准确的服务，建议转接人工客服。',
+      chips: ['联系人工客服', '还有其他问题'] }
+  },
+
+  aftersale: {
+    agentName: '售后助手',
+    agentDesc: '保单查询 · 续期理赔',
+    navActive: 'nav-aftersale',
+    greeting: [
+      { type: 'sys', text: '已进入售后查询场景 · Router Agent 意图识别: 售后 (置信度 0.89)' },
+      { type: 'sys', text: 'Session Gateway 已注入保单快照 · 保单数: 1' },
+      {
+        type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+        text: '您好！我是您的专属售后助手 📋\n\n我已获取您的保单信息，可以帮您：\n• 查询保单状态和详情\n• 解答续期缴费问题\n• 理赔申请指引\n• 查询理赔进度\n\n请问有什么可以帮您？',
+        chips: ['查询保单', '续期缴费', '申请理赔', '查理赔进度']
+      }
+    ],
+    flows: {
+      '查询我的保单': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '已从 Session 快照为您调取保单信息（无需重复查询）：',
+          policy: {
+            rows: [
+              { label: '保单号', value: 'MT-2024-ACC-10086' },
+              { label: '产品名称', value: '美团意外无忧险' },
+              { label: '保单状态', value: 'active', isStatus: true },
+              { label: '保障期限', value: '2024-03-01 至 2025-03-01' },
+              { label: '年保费', value: '¥88.00' },
+              { label: '下次续费日', value: '2025-02-15' },
+            ]
+          },
+          text2: '您的保单目前处于**有效**状态，距续费还有 28 天。需要我为您设置续费提醒吗？',
+          chips: ['设置续费提醒', '查看保障详情', '申请理赔', '联系人工客服'] },
+      ],
+      '查询保单': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '已从 Session 快照为您调取保单信息（无需重复查询）：',
+          policy: {
+            rows: [
+              { label: '保单号', value: 'MT-2024-ACC-10086' },
+              { label: '产品名称', value: '美团意外无忧险' },
+              { label: '保单状态', value: 'active', isStatus: true },
+              { label: '保障期限', value: '2024-03-01 至 2025-03-01' },
+              { label: '年保费', value: '¥88.00' },
+              { label: '下次续费日', value: '2025-02-15' },
+            ]
+          },
+          text2: '您的保单目前处于**有效**状态，距续费还有 28 天。需要我为您设置续费提醒吗？',
+          chips: ['设置续费提醒', '查看保障详情', '申请理赔', '联系人工客服'] },
+      ],
+      '申请理赔': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '理赔申请需要准备以下材料：\n\n**必备材料：**\n• 身份证正反面照片\n• 事故证明（如出险报告、医院证明）\n• 医疗费用发票及清单\n• 银行卡信息（用于赔款打款）\n\n**提示：** 理赔申请须在事故发生后 **30天内** 提交。\n\n已为您生成理赔申请入口：\n`meituan://insurance/claim/apply`',
+          chips: ['立即申请', '查看理赔进度', '有疑问咨询'] },
+      ],
+      '续期缴费': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '您的续期信息如下：\n\n• **应缴金额：** ¥88.00\n• **缴费截止日：** 2025-03-01\n• **支持方式：** 一次性缴费 / 分期（对接 insurance_mall_installment 服务）\n\n已为您生成缴费链接：\n`meituan://insurance/payment?policyId=MT-2024-ACC-10086`',
+          chips: ['立即缴费', '选择分期', '了解宽限期'] },
+      ],
+      '查理赔进度': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '已为您查询最新理赔进度：\n\n• **案件编号：** CL-2024-10086-001\n• **申请时间：** 2024-11-20\n• **当前状态：** 🟡 审核中\n• **预计完成：** 1-2 个工作日\n\n审核通过后将在 **24小时内** 打款至您绑定的银行卡（尾号 6688）。\n\n如有疑问可拨打理赔热线 400-xxx-xxxx。',
+          chips: ['联系人工客服', '查询保单'] },
+      ],
+      '查看理赔进度': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '已为您查询最新理赔进度：\n\n• **案件编号：** CL-2024-10086-001\n• **申请时间：** 2024-11-20\n• **当前状态：** 🟡 审核中\n• **预计完成：** 1-2 个工作日\n\n审核通过后将在 **24小时内** 打款至您绑定的银行卡（尾号 6688）。',
+          chips: ['联系人工客服', '查询保单'] },
+      ],
+      '立即申请': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '正在为您跳转理赔申请页面 🎉\n\n**DeepLink 已生成：**\n`meituan://insurance/claim/apply?policyId=MT-2024-ACC-10086`\n\n请按页面提示上传材料，提交后 1-3 个工作日内完成审核。',
+          chips: ['查理赔进度', '联系人工客服'] },
+      ],
+      '有疑问咨询': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '请告诉我您的疑问，我来为您解答。\n\n常见问题：',
+          chips: ['理赔材料有哪些', '理赔多久到账', '联系人工客服'] },
+      ],
+      '理赔材料有哪些': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '理赔所需材料（以意外险为例）：\n\n• 意外事故证明（交警报告/急诊记录）\n• 门诊/住院病历\n• 费用发票及清单\n• 身份证及银行卡信息\n• 社保报销结算单（有社保需提供）\n\n具体险种所需材料以保单条款为准，如有疑问可联系人工客服。',
+          chips: ['立即申请', '联系人工客服'] },
+      ],
+      '理赔多久到账': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '理赔到账时效：\n\n• 材料齐全后 **1-3 个工作日** 完成审核\n• 审核通过后 **24小时内** 打款\n• 复杂案件（金额超5万）可能延长至 **7个工作日**\n\n如超时未到账，可拨打客服热线 400-xxx-xxxx 查询。',
+          chips: ['查理赔进度', '联系人工客服'] },
+      ],
+      '设置续费提醒': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '已为您设置续费提醒 ✅\n\n将在续费日前 **15天** 和 **7天** 分别通过短信和 App 推送提醒您。\n\n续费截止日：**2025-03-01**，请确保届时账户余额充足。',
+          chips: ['立即缴费', '查询保单'] },
+      ],
+      '查看保障详情': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '您当前保单的保障详情：\n\n**美团意外无忧险**\n\n• 意外身故/残疾：最高 **100万**\n• 意外医疗：最高 **5万**（含自费药）\n• 住院津贴：**100元/天**，最长180天\n• 全球救援服务：✓\n• 保障期限：2024-03-01 至 2025-03-01\n\n如需查看完整条款，请访问 App 保单详情页。',
+          chips: ['申请理赔', '续期缴费', '联系人工客服'] },
+      ],
+      '立即缴费': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '正在为您跳转缴费页面 🎉\n\n**DeepLink 已生成：**\n`meituan://insurance/payment?policyId=MT-2024-ACC-10086`\n\n应缴金额 **¥88.00**，支持微信/支付宝/银行卡支付。',
+          chips: ['查询保单', '联系人工客服'] },
+      ],
+      '选择分期': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '分期缴费方案：\n\n• **月付：** ¥7.33/月（年费 ¥88 ÷ 12）\n• **季付：** ¥22/季\n• **首期免息**，后续自动扣款\n\n分期申请链接：\n`meituan://insurance/installment?policyId=MT-2024-ACC-10086`',
+          chips: ['立即缴费', '查询保单'] },
+      ],
+      '了解宽限期': [
+        { type: 'bot', tag: 'aftersale', tagLabel: '售后助手',
+          text: '**宽限期说明：**\n\n• 续费截止日后有 **30天宽限期**\n• 宽限期内保障**正常有效**\n• 宽限期内发生理赔，赔付后扣除欠缴保费\n• 超过宽限期未缴费，保单**自动失效**\n• 失效后 **2年内**可申请复效，需补缴欠费\n\n建议在截止日前完成续费，避免保障中断。',
+          chips: ['立即缴费', '设置续费提醒'] },
+      ],
+    },
+    defaultReply: { tag: 'aftersale', tagLabel: '售后助手',
+      text: '抱歉，我暂时无法准确回答您的问题 😔\n\n您可以选择以下服务，或转接人工客服为您处理。',
+      chips: ['查询保单', '申请理赔', '联系人工客服'] }
+  },
+
+  retention: {
+    agentName: '挽留专员',
+    agentDesc: '退保诊断 · 合规挽留',
+    navActive: 'nav-retention',
+    greeting: [
+      { type: 'sys', text: '已进入退保挽留场景 · 售后 Agent 检测到退保意图 → 移交挽留专员' },
+      { type: 'sys', text: '⚠️ 合规提示：退保损失金额来自系统接口，不得估算' },
+      {
+        type: 'bot', tag: 'retention', tagLabel: '挽留专员',
+        text: '您好，我是专门处理退保事宜的顾问 🤝\n\n我了解到您想退保，在为您办理之前，能告诉我是什么原因让您有这个想法吗？\n\n您的反馈对我们非常重要，也许我能帮您找到更好的解决方案。',
+        chips: ['保费太贵了', '不需要了', '买错了', '服务不好', '直接退保']
+      }
+    ],
+    flows: {
+      '保费太贵了': [
+        { type: 'bot', tag: 'retention', tagLabel: '挽留专员',
+          text: '我完全理解您的顾虑，保费确实是一个重要考量。\n\n好消息是，我们有**降档方案**可以帮您降低保费，同时保留核心保障：\n\n• **标准版 → 基础版：** 年保费从 ¥88 降至 **¥48**，保留意外身故/残疾保障\n• **暂停保单：** 最长可暂停 3 个月，期间不扣费\n• **分期缴费：** 月付 ¥7.3，减轻一次性支出压力\n\n您觉得哪个方案更适合您？',
+          chips: ['了解基础版详情', '申请分期', '暂停保单', '还是要退保'] },
+      ],
+      '买错了': [
+        { type: 'bot', tag: 'retention', tagLabel: '挽留专员',
+          text: '明白了！买错产品确实让人困扰。\n\n我来帮您找到更合适的产品 🔍\n\n正在将您移交给**售前顾问**，重新为您匹配需求...',
+          chips: ['重新推荐产品'] },
+      ],
+      '直接退保': [
+        { type: 'bot', tag: 'retention', tagLabel: '挽留专员',
+          text: '好的，我尊重您的决定。\n\n在退保前，请了解退保损失（数据来自系统接口）：\n\n• **已缴保费：** ¥88.00\n• **可退金额：** ¥62.40（退保手续费 ¥25.60）\n• **已享保障天数：** 87 天\n\n退保申请链接：\n`meituan://insurance/surrender?policyId=MT-2024-ACC-10086`\n\n⚠️ **温馨提示：** 退保后该保单无法恢复，如 30 天内反悔可联系客服申请撤销。',
+          chips: ['确认退保', '再考虑一下', '联系人工客服'] },
+      ],
+      '服务不好': [
+        { type: 'bot', tag: 'retention', tagLabel: '挽留专员',
+          text: '非常抱歉您有这样的体验 😔\n\n您的反馈对我们很重要。我已将您的情况**升级至人工客服**，将有专属顾问在 5 分钟内联系您。\n\n同时，作为补偿，我们可以为您提供：\n• 3 个月保费减免\n• 专属客服通道优先响应\n\n请问您愿意给我们一次改进的机会吗？',
+          chips: ['接受补偿方案', '转人工客服', '还是退保'] },
+      ],
+      '不需要了': [
+        { type: 'bot', tag: 'retention', tagLabel: '挽留专员',
+          text: '明白了，感谢您之前对我们的信任 🙏\n\n在退保前，想多了解一下您的情况：\n\n• 是保障内容不符合您的需求？\n• 还是近期暂时不需要这类保障？\n\n如果是暂时不需要，我们可以为您**暂停保单**最长 3 个月，期间不扣费，需要时随时恢复，比退保更划算。',
+          chips: ['暂停保单', '直接退保', '联系人工客服'] },
+      ],
+      '暂停保单': [
+        { type: 'bot', tag: 'retention', tagLabel: '挽留专员',
+          text: '好的！为您申请暂停保单：\n\n• **暂停时长：** 最长 3 个月\n• **暂停期间：** 不扣保费，保障同步暂停\n• **恢复方式：** 随时在 App 一键恢复\n• **注意：** 暂停期间发生的风险不在保障范围内\n\n暂停申请链接：\n`meituan://insurance/suspend?policyId=MT-2024-ACC-10086`',
+          chips: ['确认暂停', '还是直接退保', '联系人工客服'] },
+      ],
+      '还是要退保': [
+        { type: 'bot', tag: 'retention', tagLabel: '挽留专员',
+          text: '好的，我尊重您的决定。\n\n在退保前，请了解退保损失（数据来自系统接口）：\n\n• **已缴保费：** ¥88.00\n• **可退金额：** ¥62.40（退保手续费 ¥25.60）\n• **已享保障天数：** 87 天\n\n退保申请链接：\n`meituan://insurance/surrender?policyId=MT-2024-ACC-10086`\n\n⚠️ **温馨提示：** 退保后该保单无法恢复，如 30 天内反悔可联系客服申请撤销。',
+          chips: ['确认退保', '再考虑一下', '联系人工客服'] },
+      ],
+      '还是直接退保': [
+        { type: 'bot', tag: 'retention', tagLabel: '挽留专员',
+          text: '好的，我尊重您的决定。\n\n在退保前，请了解退保损失（数据来自系统接口）：\n\n• **已缴保费：** ¥88.00\n• **可退金额：** ¥62.40（退保手续费 ¥25.60）\n• **已享保障天数：** 87 天\n\n退保申请链接：\n`meituan://insurance/surrender?policyId=MT-2024-ACC-10086`\n\n⚠️ **温馨提示：** 退保后该保单无法恢复，如 30 天内反悔可联系客服申请撤销。',
+          chips: ['确认退保', '再考虑一下', '联系人工客服'] },
+      ],
+      '接受补偿方案': [
+        { type: 'bot', tag: 'retention', tagLabel: '挽留专员',
+          text: '太好了！感谢您愿意给我们机会 😊\n\n已为您申请以下补偿：\n• ✅ **3 个月保费减免**（下次续费自动抵扣）\n• ✅ **专属客服通道**（优先响应，等待时间 < 1 分钟）\n\n补偿将在 1 个工作日内生效，届时会收到短信通知。\n\n如后续还有任何问题，随时联系我们！',
+          chips: ['查询保单', '联系人工客服', '返回首页'] },
+      ],
+      '再考虑一下': [
+        { type: 'bot', tag: 'retention', tagLabel: '挽留专员',
+          text: '好的，不急！保单会继续为您保障。\n\n如果您想了解其他解决方案，或者有任何疑问，随时告诉我。',
+          chips: ['保费太贵了', '暂停保单', '联系人工客服'] },
+      ],
+    },
+    defaultReply: { tag: 'retention', tagLabel: '挽留专员',
+      text: '我理解您的想法。请放心，您有权利随时退保。\n\n请问是什么原因让您考虑退保？',
+      chips: ['保费太贵了', '不需要了', '买错了', '服务不好', '直接退保'] }
+  }
+};
+
+// ── State ──
+let currentScene = 'presale';
+let isTyping = false;
+// 记录用户当前正在咨询的险种，用于上下文感知的关键词匹配
+let currentInsuranceType = null; // 'accident' | 'ci' | 'health' | 'life'
+// 记录各险种核保是否已通过，通过后产品卡片直接显示「立即投保」
+let underwritingPassed = {}; // { accident: true, ci: true, ... }
+
+// ── DOM helpers ──
+const $msgs = () => document.getElementById('messages');
+
+function scrollBottom() {
+  const el = $msgs();
+  setTimeout(() => el.scrollTop = el.scrollHeight, 50);
+}
+
+function addSysMsg(text) {
+  const el = document.createElement('div');
+  el.className = 'sys-msg';
+  el.textContent = text;
+  $msgs().appendChild(el);
+  scrollBottom();
+}
+
+function getTagClass(tag) {
+  return { presale: 'tag-presale', aftersale: 'tag-aftersale', retention: 'tag-retention', router: 'tag-router' }[tag] || 'tag-router';
+}
+
+// SVG 头像生成函数
+function makeBotAvatar() {
+  return `<svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="bg${Date.now()}" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7C3AED"/><stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient></defs>
+    <circle cx="18" cy="18" r="18" fill="url(#bg${Date.now()})"/>
+    <path d="M18 8 L26 12 L26 19.5 C26 24.2 22.5 28.2 18 29.5 C13.5 28.2 10 24.2 10 19.5 L10 12 Z" fill="none" stroke="white" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M14.5 18.5 L16.8 21 L21.5 16" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>`;
+}
+function makeUserAvatar() {
+  return `<svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="ug2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F97316"/><stop offset="100%" stop-color="#FBBF24"/>
+    </linearGradient></defs>
+    <circle cx="18" cy="18" r="18" fill="url(#ug2)"/>
+    <circle cx="18" cy="14" r="5" fill="white" opacity="0.92"/>
+    <path d="M8 30 C8 24.5 12.5 20 18 20 C23.5 20 28 24.5 28 30" fill="white" opacity="0.92"/>
+  </svg>`;
+}
+
+function addBotMsg(msg) {
+  // 核保通过时记录状态
+  if (msg.underwritingPass) {
+    underwritingPassed[msg.underwritingPass] = true;
+  }
+  // 场景切换（如返回首页切回 router）
+  if (msg.switchScene) {
+    currentScene = msg.switchScene;
+    setNav('nav-' + msg.switchScene);
+    updateBadge(msg.switchScene);
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'msg bot';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.innerHTML = makeBotAvatar();
+
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+
+  if (msg.tag) {
+    const tag = document.createElement('div');
+    tag.className = 'agent-tag ' + getTagClass(msg.tag);
+    tag.textContent = msg.tagLabel || msg.tag;
+    body.appendChild(tag);
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = formatText(msg.text);
+  body.appendChild(bubble);
+
+  // Product card
+  if (msg.card) {
+    // Infer insurance type from first chip key to route card button to correct underwriting flow
+    const underwritingKey = msg.cardUnderwriting || (msg.chips && msg.chips[0]) || '核保:意外险';
+    const card = buildProductCard(msg.card, underwritingKey);
+    body.appendChild(card);
+  }
+
+  // Text 2 (after card)
+  if (msg.text2) {
+    const b2 = document.createElement('div');
+    b2.className = 'bubble';
+    b2.innerHTML = formatText(msg.text2);
+    body.appendChild(b2);
+  }
+
+  // Policy card
+  if (msg.policy) {
+    const pc = buildPolicyCard(msg.policy);
+    body.appendChild(pc);
+  }
+
+  // Chips — chips[] are the flow keys, chipLabels[] are the display text
+  if (msg.chips && msg.chips.length) {
+    const chipsEl = document.createElement('div');
+    chipsEl.className = 'chips';
+    msg.chips.forEach((key, i) => {
+      const label = (msg.chipLabels && msg.chipLabels[i]) ? msg.chipLabels[i] : key;
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.textContent = label;
+      chip.onclick = () => handleChip(key, label, chipsEl);
+      chipsEl.appendChild(chip);
+    });
+    body.appendChild(chipsEl);
+  }
+
+  wrap.appendChild(avatar);
+  wrap.appendChild(body);
+  $msgs().appendChild(wrap);
+  scrollBottom();
+}
+
+function addUserMsg(text) {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg user';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.innerHTML = makeUserAvatar();
+
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+  body.appendChild(bubble);
+
+  wrap.appendChild(body);
+  wrap.appendChild(avatar);
+  $msgs().appendChild(wrap);
+  scrollBottom();
+}
+
+function showTyping() {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg bot';
+  wrap.id = 'typing-indicator';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.innerHTML = makeBotAvatar();
+
+  const typing = document.createElement('div');
+  typing.className = 'typing';
+  for (let i = 0; i < 3; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'typing-dot';
+    typing.appendChild(dot);
+  }
+
+  wrap.appendChild(avatar);
+  wrap.appendChild(typing);
+  $msgs().appendChild(wrap);
+  scrollBottom();
+}
+
+function hideTyping() {
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+
+function buildProductCard(card, insuranceType) {
+  insuranceType = insuranceType || '核保:意外险';
+
+  // 判断该险种是否已通过核保
+  const insTypeMap = {
+    '核保:意外险': 'accident', '意外险': 'accident',
+    '了解理赔流程': 'ci',      '重疾险': 'ci',
+    '了解健康告知': 'health',  '健康险': 'health',
+    '核保:寿险': 'life',       '寿险': 'life',
+  };
+  const insType = insTypeMap[insuranceType];
+  const passed = insType && underwritingPassed[insType];
+
+  // 已通过核保：直接跳购买 flow；否则走核保流程
+  const purchaseKeyMap = {
+    accident: '意外险购买', ci: '重疾险购买', health: '健康险购买', life: '寿险购买',
+  };
+  const btnKey   = passed ? purchaseKeyMap[insType] : insuranceType;
+  const btnLabel = passed ? '立即投保' : '确认投保资格';
+  const btnClass = passed ? 'product-cta product-cta-ready' : 'product-cta';
+
+  const c = document.createElement('div');
+  c.className = 'product-card';
+  c.innerHTML = `
+    <div class="product-card-header">
+      <div class="product-icon">${card.icon}</div>
+      <div>
+        <div class="product-name">${card.name}</div>
+        <div class="product-tagline">${card.tagline}</div>
+      </div>
+    </div>
+    <div class="product-body">
+      <div class="product-price">${card.price}<span>${card.unit}</span></div>
+      <div class="product-features">
+        ${card.features.map(f => `<div class="feature">${f}</div>`).join('')}
+      </div>
+      <button class="${btnClass}" onclick="handleChip('${btnKey}', '${btnLabel}', null)">${passed ? '✅ ' : ''}${btnLabel}</button>
+    </div>
+  `;
+  return c;
+}
+
+function buildPolicyCard(policy) {
+  const c = document.createElement('div');
+  c.className = 'policy-card';
+  c.innerHTML = policy.rows.map(r => `
+    <div class="policy-row">
+      <span class="policy-label">${r.label}</span>
+      ${r.isStatus
+        ? `<span class="policy-value"><span class="policy-status-badge">有效</span></span>`
+        : `<span class="policy-value">${r.value}</span>`
+      }
+    </div>
+  `).join('');
+  return c;
+}
+
+function formatText(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`(.*?)`/g, '<code style="background:#EFF6FF;color:#1D4ED8;padding:2px 6px;border-radius:4px;font-size:12px;font-family:monospace;border:1px solid #BFDBFE">$1</code>')
+    .replace(/\n/g, '<br>');
+}
+
+// ── Sidebar nav ──
+function setNav(activeId) {
+  ['nav-router','nav-presale','nav-aftersale','nav-retention'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('active', id === activeId);
+  });
+}
+
+// typing 指示器中也用 SVG 头像
+
+
+function updateBadge(scene) {
+  const s = SCENES[scene];
+  // 旧侧边栏 badge（隐藏状态，保留兼容）
+  const bn = document.getElementById('badge-name');
+  const bd = document.getElementById('badge-desc');
+  if (bn) bn.textContent = s.agentName;
+  if (bd) bd.textContent = s.agentDesc;
+  // 顶部 banner
+  const bn2 = document.getElementById('badge-name2');
+  const bd2 = document.getElementById('badge-desc2');
+  if (bn2) bn2.textContent = s.agentName;
+  if (bd2) bd2.textContent = '· ' + s.agentDesc;
+}
+
+// 场景标签点击切换
+function switchScene(scene) {
+  loadScene(scene, false);
+}
+
+// ── Scene loading ──
+function loadScene(scene, keepMessages) {
+  currentScene = scene;
+
+  if (!keepMessages) {
+    $msgs().innerHTML = '';
+  }
+
+  const s = SCENES[scene];
+  setNav('nav-router');
+  updateBadge(scene);
+
+  // Play greeting
+  let delay = 0;
+  s.greeting.forEach(msg => {
+    setTimeout(() => {
+      if (msg.type === 'sys') {
+        addSysMsg(msg.text);
+      } else {
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          setNav(s.navActive);
+          addBotMsg(msg);
+        }, 800);
+      }
+    }, delay);
+    delay += msg.type === 'sys' ? 400 : 1400;
+  });
+}
+
+// ── Router: 意图识别后路由到目标场景 ──
+const INTENT_ROUTES = {
+  '我想买保险': 'presale',
+  '查询我的保单': 'aftersale',
+  '我想退保': 'retention',
+};
+const INTENT_KEYWORDS = [
+  { kws: ['买保险','购买','投保','推荐','想买','了解保险','重疾','意外险','健康险','寿险','宝宝险','儿童险','少儿险','配置建议'], scene: 'presale' },
+  { kws: ['保单','查询','理赔','续期','缴费','查一下'], scene: 'aftersale' },
+  { kws: ['退保','退款','不想续','取消保险'], scene: 'retention' },
+];
+
+function routeToScene(key, displayText) {
+  // 精确匹配
+  let target = INTENT_ROUTES[key];
+  // 关键词匹配
+  if (!target) {
+    const lower = displayText.toLowerCase();
+    for (const rule of INTENT_KEYWORDS) {
+      if (rule.kws.some(kw => lower.includes(kw))) {
+        target = rule.scene;
+        break;
+      }
+    }
+  }
+  if (!target) return false;
+
+  const confidenceMap = { presale: '0.94', aftersale: '0.89', retention: '0.91' };
+  const labelMap = { presale: '售前', aftersale: '售后', retention: '退保挽留' };
+
+  addSysMsg(`Router Agent 意图识别: ${labelMap[target]} (置信度 ${confidenceMap[target]}) → 移交对应 Agent`);
+  setTimeout(() => loadScene(target, true), 600);
+  return true;
+}
+
+// ── Chip handler ──
+// key: flow lookup key; label: display text shown in user bubble (defaults to key)
+function handleChip(key, label, chipsContainer) {
+  if (isTyping) return;
+
+  // Disable all chips in this container
+  if (chipsContainer) {
+    chipsContainer.querySelectorAll('.chip').forEach(c => {
+      c.style.pointerEvents = 'none';
+      c.style.opacity = '0.5';
+    });
+  }
+
+  const displayText = label || key;
+  addUserMsg(displayText);
+  isTyping = true;
+
+  // 在 router 场景下，先尝试意图路由
+  if (currentScene === 'router') {
+    isTyping = false;
+    showTyping();
+    setTimeout(() => {
+      hideTyping();
+      if (!routeToScene(key, displayText)) {
+        // 未识别意图，兜底提示
+        addBotMsg({
+          tag: 'router', tagLabel: 'Router',
+          text: '我来帮您找到合适的服务，请问您是想：',
+          chips: ['我想买保险', '查询我的保单', '我想退保']
+        });
+      }
+    }, 800);
+    return;
+  }
+
+  const scene = SCENES[currentScene];
+
+  // retention / aftersale 场景：精确匹配即可，不走险种上下文逻辑
+  // 这两个场景的 flows key 都是精确中文短语，直接走第一步精确匹配
+  // 只有 presale 需要复杂的上下文感知关键词匹配
+
+  // 更新险种上下文（识别到险种 key 时记录）
+  const insuranceTypeMap = {
+    '意外险': 'accident', '核保:意外险': 'accident', '理赔详情:意外险': 'accident',
+    '重疾险': 'ci',       '了解理赔流程': 'ci',       '理赔详情:重疾险': 'ci',
+    '健康险': 'health',   '了解健康告知': 'health',   '理赔详情:健康险': 'health',
+    '寿险':   'life',     '核保:寿险': 'life',        '理赔详情:寿险': 'life',
+  };
+  if (insuranceTypeMap[key]) currentInsuranceType = insuranceTypeMap[key];
+
+  // 险种上下文 → 对应的理赔/核保/对比 flow key
+  const ctxFlowMap = {
+    accident: { claim: '理赔详情:意外险', underwrite: '核保:意外险',   compare: '对比竞品:意外险' },
+    ci:       { claim: '理赔详情:重疾险', underwrite: '了解理赔流程',   compare: '对比竞品:重疾险' },
+    health:   { claim: '理赔详情:健康险', underwrite: '了解健康告知',   compare: '对比竞品:健康险' },
+    life:     { claim: '理赔详情:寿险',   underwrite: '核保:寿险',      compare: '对比竞品:寿险'   },
+  };
+
+  // Exact match first
+  let flow = scene.flows[key];
+
+  // Keyword match — context-aware
+  if (!flow) {
+    const lower = displayText.toLowerCase();
+    const ctx = currentInsuranceType && ctxFlowMap[currentInsuranceType];
+
+    // 险种切换关键词
+    const typeKeywords = [
+      { kws: ['重疾', '重大疾病'], type: 'ci',       flowKey: '重疾险' },
+      { kws: ['意外'],             type: 'accident',  flowKey: '意外险' },
+      { kws: ['健康险', '医疗险', '百万医疗'], type: 'health', flowKey: '健康险' },
+      { kws: ['寿险', '定期寿', '终身寿'],    type: 'life',   flowKey: '寿险' },
+    ];
+    for (const { kws, type, flowKey } of typeKeywords) {
+      if (kws.some(kw => lower.includes(kw)) && scene.flows[flowKey]) {
+        currentInsuranceType = type;
+        flow = scene.flows[flowKey];
+        break;
+      }
+    }
+
+    // 意图关键词 — 优先结合当前险种上下文
+    if (!flow && ctx) {
+      const intentMap = [
+        { kws: ['理赔', '怎么赔', '如何赔', '赔付', '出险', '报销', '申请赔'], flowKey: ctx.claim },
+        { kws: ['核保', '投保资格', '能不能买', '能买吗', '健康告知', '可以投保', '符合条件'], flowKey: ctx.underwrite },
+        { kws: ['对比', '竞品', '比较', '哪个好', '其他保司', '平安', '太平洋', '友邦'], flowKey: ctx.compare },
+        { kws: ['保费', '多少钱', '价格', '费率'], flowKey: null }, // 已在产品卡片展示，不另设 flow
+      ];
+      for (const { kws, flowKey } of intentMap) {
+        if (kws.some(kw => lower.includes(kw))) {
+          if (flowKey && scene.flows[flowKey]) {
+            flow = scene.flows[flowKey];
+          }
+          break;
+        }
+      }
+    }
+
+    // 售后/退保关键词
+    if (!flow) {
+      const crossMap = [
+        { kws: ['查询保单', '我的保单', '查保单'],   flowKey: '查询保单' },
+        { kws: ['续期', '缴费', '续费'],             flowKey: '续期缴费' },
+        { kws: ['保费太贵', '太贵', '贵了'],         flowKey: '保费太贵了' },
+        { kws: ['买错', '买错了', '买错产品'],       flowKey: '买错了' },
+        { kws: ['退保', '办理退保', '申请退保'],     flowKey: '直接退保' },
+        { kws: ['服务不好', '服务差', '体验差'],     flowKey: '服务不好' },
+        { kws: ['不需要', '不想要', '用不上'],       flowKey: '不需要了' },
+        { kws: ['暂停', '暂停保单', '先暂停'],       flowKey: '暂停保单' },
+        { kws: ['申请理赔', '提交理赔', '理赔申请'], flowKey: '申请理赔' },
+      ];
+      for (const { kws, flowKey } of crossMap) {
+        if (kws.some(kw => lower.includes(kw)) && scene.flows[flowKey]) {
+          flow = scene.flows[flowKey];
+          break;
+        }
+      }
+    }
+  }
+
+  showTyping();
+  setTimeout(() => {
+    hideTyping();
+    isTyping = false;
+
+    if (flow) {
+      flow.forEach((msg, i) => {
+        setTimeout(() => addBotMsg(msg), i * 200);
+      });
+    } else {
+      // 兜底：无法识别意图，转人工
+      addBotMsg({
+        tag: 'presale', tagLabel: '售前顾问',
+        text: '抱歉，我暂时无法准确回答您的问题 😔\n\n为了给您提供更准确的服务，建议转接人工客服。',
+        chips: ['联系人工客服', '还有其他问题'],
+      });
+    }
+  }, 900 + Math.random() * 400);
+}
+
+// ── Manual input ──
+function sendMessage() {
+  const input = document.getElementById('input');
+  const text = input.value.trim();
+  if (!text || isTyping) return;
+  input.value = '';
+  autoResize(input);
+  handleChip(text, text, null);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+// ── Init ──
+loadScene('router');
+</script>
+</body>
+</html>
