@@ -35,7 +35,13 @@ export abstract class BaseAgent {
     })
 
     // Agentic loop: handle tool use
+    const MAX_TOOL_ITERATIONS = 10
+    let toolIterations = 0
+
     while (response.stop_reason === 'tool_use') {
+      if (++toolIterations > MAX_TOOL_ITERATIONS) {
+        throw new Error(`Tool use loop exceeded ${MAX_TOOL_ITERATIONS} iterations`)
+      }
       const toolResults: Anthropic.Messages.ToolResultBlockParam[] = []
       for (const block of response.content) {
         if (block.type === 'tool_use') {

@@ -1,3 +1,5 @@
+import { buildDeeplink } from './navigation.js'
+
 export interface ProductResult {
   productId: string
   name: string
@@ -36,5 +38,5 @@ export async function searchCompetitorProducts(
 }
 
 export function navigateToProduct(productId: string): string {
-  return `meituan://insurance/product/${productId}`
+  return buildDeeplink(`product/${productId}`)
 }

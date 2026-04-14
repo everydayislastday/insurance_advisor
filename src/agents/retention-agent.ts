@@ -29,7 +29,10 @@ export class RetentionAgent extends BaseAgent {
       },
       async execute(_input: Record<string, unknown>, _ctx: SessionContext) {
         // Production: call surrender cost API
-        return { note: 'surrender cost service not connected' }
+        return {
+          error: 'SURRENDER_COST_SERVICE_UNAVAILABLE',
+          instruction: '退保损失查询服务暂时不可用，请勿估算损失金额，告知用户稍后重试或转人工客服处理。',
+        }
       },
     },
     {

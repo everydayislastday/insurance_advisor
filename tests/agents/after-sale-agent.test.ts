@@ -3,14 +3,15 @@ import { AfterSaleAgent } from '../../src/agents/after-sale-agent.js'
 import type { SessionContext } from '../../src/types/session.js'
 
 vi.mock('@anthropic-ai/sdk', () => ({
-  default: vi.fn().mockImplementation(() => ({
+  default: vi.fn().mockImplementation(function() { return {
     messages: {
       create: vi.fn().mockResolvedValue({
         stop_reason: 'end_turn',
         content: [{ type: 'text', text: '您的保单状态如下：...' }],
       }),
     },
-  })),
+  }; }
+  ),
 }))
 
 const ctxWithPolicy = (): SessionContext => ({

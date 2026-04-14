@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import type { SessionGateway } from '../gateway/session-gateway.js'
 import type { RouterAgent } from '../router/router-agent.js'
-import type { AgentId } from '../types/session.js'
+import type { AgentId, RiskLevel } from '../types/session.js'
 import { matchFaq } from '../fallback/faq-rules.js'
 
 interface ChatRequest {
@@ -31,9 +31,14 @@ export function registerChatRoute(
       return reply.status(400).send({ error: 'sessionId is required' })
     }
 
+    const VALID_RISK_LEVELS: RiskLevel[] = ['low', 'medium', 'high']
+    if (riskLevel && !VALID_RISK_LEVELS.includes(riskLevel as RiskLevel)) {
+      return reply.status(400).send({ error: 'Invalid riskLevel, must be low|medium|high' })
+    }
+
     let ctx
     try {
-      ctx = await gateway.getOrCreate(sessionId, userId, openId, riskLevel as any)
+      ctx = await gateway.getOrCreate(sessionId, userId, openId, riskLevel as RiskLevel)
     } catch {
       return reply.status(500).send({ error: 'Failed to load session' })
     }

@@ -3,14 +3,15 @@ import { PreSaleAgent } from '../../src/agents/pre-sale-agent.js'
 import type { SessionContext } from '../../src/types/session.js'
 
 vi.mock('@anthropic-ai/sdk', () => ({
-  default: vi.fn().mockImplementation(() => ({
+  default: vi.fn().mockImplementation(function() { return {
     messages: {
       create: vi.fn().mockResolvedValue({
         stop_reason: 'end_turn',
         content: [{ type: 'text', text: '您好！我来帮您推荐适合的保险产品。' }],
       }),
     },
-  })),
+  }; }
+  ),
 }))
 
 const baseCtx = (): SessionContext => ({
